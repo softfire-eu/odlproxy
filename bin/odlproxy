@@ -1,0 +1,4 @@
+#!/usr/bin/env python
+
+import odlproxy
+odlproxy.odlproxy_main()
