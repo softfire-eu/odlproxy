@@ -1,13 +1,20 @@
+from odlproxy.odl import ODLDataRetriever
+
 __author__ = 'Massimiliano Romano'
 
 from unittest import TestCase
 import os
 
+
 import odlproxy
+import openstack
 
 class TestODLProxy(TestCase):
-    def test_is_string(self):
 
+    #def __init__(self):
+    #    self.set_env()
+
+    def set_env(self):
         #SET ENV VARS
         '''
         os.environ['OS_USERNAME'] = "admin"
@@ -41,6 +48,13 @@ class TestODLProxy(TestCase):
 
 
 
+    def test_os_odl(self):
+        osClient = openstack.OpenstackClient()
+        osClient.get_ports()
+        odl = ODLDataRetriever()
+        odl.getFlows()
+
+    def t_est_is_string(self):
         s = odlproxy.odlproxy_main()
 
 
