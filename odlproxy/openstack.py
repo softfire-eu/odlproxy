@@ -4,9 +4,7 @@ __author__ = 'Massimiliano Romano'
 
 import os_client_config
 import os
-
 from neutronclient.v2_0 import client
-
 
 class OpenstackClient():
 

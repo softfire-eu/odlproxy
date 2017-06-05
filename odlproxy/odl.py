@@ -22,7 +22,6 @@ class ODLDataRetriever():
 
             empty_tables_counter=0
 
-
             table0=None
 
             for table in tables:
@@ -40,7 +39,7 @@ class ODLDataRetriever():
             f = table0.flows
             show(node, 0)
 
-            return
+            return   #cosa
             #flows = odl.flows.list_all(node.id)
 
 

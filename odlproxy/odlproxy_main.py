@@ -18,8 +18,6 @@ def odlproxy_main():
     #proxy = ProxyFilter("blabla")
     proxy = ProxyFilter(address,port,server_name,debug,log_level,options,parent_proxy)
 
-
-
     '''
     os_client = OpenstackClient()
     tenant_id="xxxx"
@@ -29,7 +27,6 @@ def odlproxy_main():
     print "retrieved %d ports" % len(tenant_ports)
 
     first_port=tenant_ports[0]
-
 
     odl_data_retriever = ODLDataRetriever()
     odl_data_retriever.getFlows(first_port['port_id_11'])
