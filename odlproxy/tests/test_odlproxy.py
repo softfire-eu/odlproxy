@@ -1,11 +1,11 @@
-from odlproxy import OpenstackClient
+import odlproxy
 from odlproxy.odl import ODLDataRetriever
+
 
 __author__ = 'Massimiliano Romano'
 
 from unittest import TestCase
 import os
-
 
 class TestODLProxy(TestCase):
 

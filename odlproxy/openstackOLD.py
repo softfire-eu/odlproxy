@@ -6,16 +6,17 @@ import os_client_config
 import os
 from neutronclient.v2_0 import client
 
+
 class OpenstackClient():
 
-    def get_credentials(self):
+    def get_credentials(self,tenant_id):
         d = {}
         d['username'] = os.environ['OS_USERNAME']
         d['password'] = os.environ['OS_PASSWORD']
         d['auth_url'] = os.environ['OS_AUTH_URL']
         #d['tenant_name'] = os.environ['OS_TENANT_NAME']
-        d['project_id'] = os.environ['OS_PROJECT_ID']
-        #d['tenant_id'] = os.environ['OS_TENANT_ID']
+        d['project_id'] = tenant_id
+        d['tenant_id'] = tenant_id
         return d
 
     def get_networks(self):
@@ -26,11 +27,11 @@ class OpenstackClient():
         self.print_values(netw, 'networks')
 
     def get_ports(self,tenant_id):
-        credentials = self.get_credentials()
+        credentials = self.get_credentials(tenant_id)
         neutron = client.Client(**credentials)
 
         get_ports_params = {}
-        get_ports_params['tenant_id'] = os.environ['OS_PROJECT_ID']
+        #get_ports_params['tenant_id'] = tenant_id
 
         try:
             ports = neutron.list_ports(**get_ports_params)

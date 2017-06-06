@@ -1,4 +1,9 @@
+import os
+
 import bottle
+
+from odlproxy import OpenstackClient, openstack2_api
+from odlproxy.odl import ODLDataRetriever
 from odlproxy.utils import get_logger
 from bottle import post, get, delete, route
 from bottle import request, response
@@ -66,6 +71,26 @@ def proxy_creation_handler():
             response.status = 500
             return "Duplicate experiment!"
 
+
+        #osClient = OpenstackClient()
+        #ports = osClient.get_ports(tenant_id)
+
+        auth_url = os.environ['OS_AUTH_URL']
+        user = os.environ['OS_USERNAME']
+        password = os.environ['OS_PASSWORD']
+        project_id = os.environ['OS_PROJECT_ID']
+
+        conn = openstack2_api.create_connection(auth_url, None, project_id, user, password)
+
+        openstack2_api.list_ports(conn, project_id)
+
+        odl = ODLDataRetriever()
+
+        flows_of_port = []
+        for port in ports:
+            flows_of_port = odl.getFlows(port['port_id'])
+            # print "flows_of_port %d" % flows_of_port
+
         #_experiments[experiment_id] = {"tenant": tenant_id, "flow_tables": get_user_flowtables(experiment_id)}
 
         response.headers['Content-Type'] = 'application/json'
@@ -73,7 +98,8 @@ def proxy_creation_handler():
         return json.dumps(
             {"user-flow-tables": _experiments[experiment_id]["flow_tables"], "endpoint_url": _api_endpoint})
 
-    except:
+    except Exception as e:
+        logger.error(e)
         response.status = 500
 
 

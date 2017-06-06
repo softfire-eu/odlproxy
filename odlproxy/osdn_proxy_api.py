@@ -13,7 +13,7 @@ from SdnFilter import SdnFilter, OpenSdnCoreFilter, WhitelistFilter
 from osdn_exceptions import JsonRpcParseError, JsonRpcInvalidRequest, JsonRpcError, JsonRpcServerError, \
     JsonRpcInternalError
 
-from odlproxy import openstack
+from odlproxy import openstackOLD
 from odlproxy.odl import ODLDataRetriever
 from utils import get_config, get_logger, make_jsonrpc_error
 
@@ -81,7 +81,7 @@ def proxy_creation_handler():
         response.headers['Cache-Control'] = 'no-cache'
 
         #qui va inserito il filtro nostro.
-        osClient = openstack.OpenstackClient()
+        osClient = openstackOLD.OpenstackClient()
         ports = osClient.get_ports(tenant_id)
         odl = ODLDataRetriever()
         for port in ports:
