@@ -56,9 +56,6 @@ def odlproxy_main():
     #bottle.run(host='0.0.0.0', port=8001, reloader=True)
 
     set_env()
-
-
-
     odl_proxy_api.start()
 
 

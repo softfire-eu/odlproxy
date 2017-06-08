@@ -1,12 +1,15 @@
 import os
 
 import bottle
+import re
+
+import requests
 
 from odlproxy import OpenstackClient, openstack2_api
 from odlproxy.odl import ODLDataRetriever
 from odlproxy.utils import get_logger
-from bottle import post, get, delete, route
-from bottle import request, response
+from bottle import post, get, delete, put
+from bottle import request, response, redirect
 
 import json
 
@@ -18,6 +21,14 @@ _experiments = dict()
 _auth_secret = "90d82936f887a871df8cc82c1518a43e"
 _api_endpoint = "http://127.0.0.1:8001/"
 
+_mapTable = dict()
+_mapTable[0] = { "table": [2,3,4], "assigned": False}
+_mapTable[1] = { "table": [5,6,7], "assigned": False}
+_mapTable[2] = { "table": [8,9,10], "assigned": False}
+_mapTable[3] = { "table": [11,12,13], "assigned": False}
+_mapTable[4] = { "table": [14,15,16], "assigned": False}
+
+print(_mapTable)
 
 @get('/SDNproxy/<token>')
 def proxy_details_handler(token):
@@ -34,6 +45,36 @@ def proxy_details_handler(token):
         raise bottle.HTTPError(403, "Auth-Secret error!")
 
 
+def get_ports(tenant_id):
+    auth_url = os.environ['OS_AUTH_URL']
+    user = os.environ['OS_USERNAME']
+    password = os.environ['OS_PASSWORD']
+    project_id = tenant_id
+
+    conn = openstack2_api.create_connection(auth_url, None, project_id, user, password)
+
+    ports = openstack2_api.list_ports(conn, project_id)
+
+
+def get_user_flowtables(tenant_id,experiment_id):
+
+    for key, value in _mapTable.iteritems():
+        if value["assigned"] == False:
+           value["assigned"] = True
+           return value["table"]
+        else:
+            return "ODL Proxy - Max concurrent Experiments reached - Max 5"
+    #odl = ODLDataRetriever()
+
+    # Filtrare per le tabelle occupate per tenant
+
+    #return odl.getTable()
+
+    #flows_of_port = []
+    #for port in ports:
+        # print "port['id'] %d" % port.id
+        #flows_of_port = odl.getFlows(port.id)
+        # print "flows_of_port %d" % flows_of_port
 
 
 @post('/SDNproxySetup')
@@ -60,7 +101,7 @@ def proxy_creation_handler():
             raise ValueError(e)
 
         if data is None:
-            print("Cant read json request")
+            print("ODL Proxy - Cant read json request")
             raise ValueError
 
         experiment_id = data['experiment_id']
@@ -69,29 +110,12 @@ def proxy_creation_handler():
         # check for existence
         if experiment_id in _experiments:
             response.status = 500
-            return "Duplicate experiment!"
-
+            return "ODL Proxy - Duplicate experiment!"
 
         #osClient = OpenstackClient()
         #ports = osClient.get_ports(tenant_id)
 
-        auth_url = os.environ['OS_AUTH_URL']
-        user = os.environ['OS_USERNAME']
-        password = os.environ['OS_PASSWORD']
-        project_id = os.environ['OS_PROJECT_ID']
-
-        conn = openstack2_api.create_connection(auth_url, None, project_id, user, password)
-
-        openstack2_api.list_ports(conn, project_id)
-
-        odl = ODLDataRetriever()
-
-        flows_of_port = []
-        for port in ports:
-            flows_of_port = odl.getFlows(port['port_id'])
-            # print "flows_of_port %d" % flows_of_port
-
-        #_experiments[experiment_id] = {"tenant": tenant_id, "flow_tables": get_user_flowtables(experiment_id)}
+        _experiments[experiment_id] = {"tenant": tenant_id, "flow_tables": get_user_flowtables(tenant_id,experiment_id)}
 
         response.headers['Content-Type'] = 'application/json'
         response.headers['Cache-Control'] = 'no-cache'
@@ -130,6 +154,82 @@ def check_auth_header(headers):
         if auth_secret == _auth_secret:
             return True
     return False
+
+@get('/restconf/<url:path>')
+@put('/restconf/<url:path>')
+def do_proxy_jsonrpc(url):
+
+    #TODO for headears
+    token = request.headers.get('API-Token')
+    authorization = request.headers.get('Authorization')
+    accept = request.headers.get('Accept')
+
+    if not accept:
+        accept = 'application/json'
+
+    if not authorization:
+        response.status = 400
+        msg = "ODL Proxy - Bad Request! Header Authorization NOT FOUND"
+        return json.dumps({"msg": msg})
+
+    if not token:
+        response.status = 400
+        msg = "ODL Proxy - Bad Request! Header API-Token NOT FOUND"
+        return json.dumps({"msg": msg})
+    else:
+        tables = _experiments[token]["flow_tables"]
+        if not tables:
+            response.status = 400
+            msg = "ODL Proxy - Experiment not found!"
+            return json.dumps({"msg": msg})
+
+    regex = 'config/opendaylight-inventory:nodes/node/openflow:([0-9]*)/table/([0-9]*)/flow/([0-9]*)'
+    title_search = re.search(regex, url, re.IGNORECASE)
+
+    if title_search:
+        nodeId = title_search.group(1)
+        tableId = int(title_search.group(2))
+        flowId = int(title_search.group(3))
+
+        if tableId in tables:
+            #Ok redirect de request to ODL
+            #redirect("http://10.200.4.8:" + "8181/" + url)
+
+            headers = {'Accept' : accept,
+                       "Authorization": authorization
+                       } #request.headers
+
+            urlODL = "http://10.200.4.8:" + "8181/restconf/" + url
+
+            if request.method == "GET":
+                resp = requests.get(urlODL, headers=headers)
+            elif request.method == "PUT":
+                try:
+                    dataj = json.loads(request.body.read().decode("utf-8"))
+                except Exception as e:
+                    response.status = 400
+                    msg = "ODL Proxy - Bad Request! " + e
+                    return json.dumps({"msg": msg})
+
+                print "code:" + str(dataj)
+                resp = requests.get(urlODL, data=dataj, headers=headers)
+
+            print "code:" + str(resp.status_code)
+            print "******************"
+            print "headers:" + str(resp.headers)
+            print "******************"
+            print "content:" + str(resp.text)
+            print "******************"
+            print "content:" + str(resp.content)
+        else:
+            response.status = 400
+            msg = "ODL Proxy - Bad Request! Don`t Modify Table " + tableId
+            return json.dumps({"msg": msg})
+
+    else:
+        response.status = 404
+        msg = "ODL Proxy - Resource Not Found!"
+        return json.dumps({"msg": msg})
 
 
 def start():
