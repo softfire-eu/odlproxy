@@ -2,11 +2,13 @@
 import httplib
 import json
 import logging
+import urlparse
 import requests
 
 __author__ = 'Massimiliano Romano'
 
-HOSTNAME_PORT="10.200.4.8:8001"
+#HOSTNAME_PORT="10.200.4.8:8001"
+HOSTNAME_PORT="10.200.4.30:8001"
 EXPERIMENT_ID="a5cfaf1e81f35fde41bef54e35772f2b"
 TENANT_ID="fed0b52c7e034d5785880613e78d4411"
 
@@ -31,11 +33,13 @@ data = '''
 }}
 '''
 
-headers = {'user-Auth-Secret': '90d82936f887a871df8cc82c1518a43e'}
+headers = {'user-Auth-Secret': '90d82936f887a871df8cc82c1518a43e', 'Content-Type': 'application/json'}
 
 
 post_token_data = data.format(EXPERIMENT_ID,TENANT_ID)
+
 response = requests.post(url, data=post_token_data,headers=headers)
+
 
 assert(response.status_code==200)
 
@@ -65,9 +69,17 @@ TODO: The experiment can interact with table 17 ?
 
 node_id=None
 
+#add token to headers
+headers['API-Token'] = EXPERIMENT_ID
+
+
 # Get openflow nodes
-get_nodes_url = odl_url+ "/restconf/config/opendaylight-inventory:nodes"
-response = requests.post(get_nodes_url, headers=headers)
+get_nodes_url = urlparse.urljoin(odl_url, "/restconf/config/opendaylight-inventory:nodes")
+#get_nodes_url = odl_url+ "/restconf/config/opendaylight-inventory:nodes"
+response = requests.get(get_nodes_url, headers=headers)
+
+assert(response.status_code==200)
+
 nodes_dict = json.loads(response.text)
 for node in nodes_dict["nodes"]["node"]:
   node_id = node["id"]
@@ -86,7 +98,8 @@ for table_id in table_range:
     print(table_id)
 
     #GET TABLE 1 FLOW 1
-    table_x_flow_1_url=odl_url + "restconf/config/opendaylight-inventory:nodes/node/{NODE_ID}/table/{TABLE_ID}/flow/1"
+    table_x_flow_1_url=urlparse.urljoin(odl_url,"restconf/config/opendaylight-inventory:nodes/node/{NODE_ID}/table/{TABLE_ID}/flow/1")
+    #table_x_flow_1_url=odl_url + "restconf/config/opendaylight-inventory:nodes/node/{NODE_ID}/table/{TABLE_ID}/flow/1"
 
     table_flow_1_url = table_x_flow_1_url.format(NODE_ID=node_id,TABLE_ID=table_id)
 
@@ -129,10 +142,10 @@ for table_id in table_range:
     }
     '''
 
-    table_x_flow_1_json = flow_1_json.replace("TABLE_ID",table_id)
+    table_x_flow_1_json = flow_1_json.replace("TABLE_ID",str(table_id))
 
     #put flow 1
-    r = requests.put(table_flow_1_url,data=flow_1_json,headers=headers)
+    r = requests.put(table_flow_1_url,data=table_x_flow_1_json,headers=headers)
     assert(r.status_code==200)
 
     #and get flow 1
