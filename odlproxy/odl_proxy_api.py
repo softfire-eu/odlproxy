@@ -3,7 +3,7 @@ import bottle
 import re
 import requests
 import openstack2_api
-from odlproxy.utils import get_logger
+from utils import get_logger
 from bottle import post, get, delete, put
 from bottle import request, response
 import json
