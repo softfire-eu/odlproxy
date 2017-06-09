@@ -1,7 +1,11 @@
 from openstack import connection
 from openstack import profile
+from odlproxy.utils import get_logger
+
+logger = get_logger(__name__)
 
 def create_connection(auth_url, region, project_name, username, password):
+    logger.debug("ODL PROXY - create_connection to Openstack")
     prof = profile.Profile()
     #prof.set_region(profile.Profile.ALL, region)
 
@@ -12,13 +16,13 @@ def create_connection(auth_url, region, project_name, username, password):
         username=username,
         password=password
 
-        # non inserire project e domain insieme
-        # username o user_id devo essere presenti
-        # per acceddere con v3 si deve usare user_id
+        # Do not include project and domain together
+        # Username or user_id must be present
+        # To use v3 you must use user_id
     )
 
-
 def list_ports(conn,tenant_id):
+    logger.debug("ODL PROXY - list_ports from Openstack")
     print("List Ports:")
 
     #get_ports_params = {}
@@ -32,7 +36,7 @@ def list_ports(conn,tenant_id):
     return conn.network.ports(project_id= tenant_id)
 
 def list_networks(conn):
-    print("List Networks:")
+    logger.debug("ODL PROXY - list_networks from Openstack")
 
     for network in conn.network.networks():
         print(network)

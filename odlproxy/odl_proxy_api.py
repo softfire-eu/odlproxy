@@ -1,16 +1,11 @@
 import os
-
 import bottle
 import re
-
 import requests
-
-from odlproxy import OpenstackClient, openstack2_api
-from odlproxy.odl import ODLDataRetriever
+from odlproxy import openstack2_api
 from odlproxy.utils import get_logger
 from bottle import post, get, delete, put
-from bottle import request, response, redirect
-
+from bottle import request, response
 import json
 
 __author__ = 'Massimiliano Romano'
@@ -20,6 +15,7 @@ logger = get_logger(__name__)
 _experiments = dict()
 _auth_secret = "90d82936f887a871df8cc82c1518a43e"
 _api_endpoint = "http://127.0.0.1:8001/"
+
 
 _mapTable = dict()
 _mapTable[0] = { "table": [2,3,4], "assigned": False}
@@ -46,6 +42,7 @@ def proxy_details_handler(token):
 
 
 def get_ports(tenant_id):
+    logger.debug("ODL PROXY - get_ports for tenant :" + tenant_id)
     auth_url = os.environ['OS_AUTH_URL']
     user = os.environ['OS_USERNAME']
     password = os.environ['OS_PASSWORD']
@@ -57,7 +54,7 @@ def get_ports(tenant_id):
 
 
 def get_user_flowtables(tenant_id,experiment_id):
-
+    logger.debug("ODL PROXY - get_user_flowtables for tenant :" + tenant_id + "and experiment_id:" + experiment_id)
     for key, value in _mapTable.iteritems():
         if value["assigned"] == False:
            value["assigned"] = True
@@ -79,6 +76,8 @@ def get_user_flowtables(tenant_id,experiment_id):
 
 @post('/SDNproxySetup')
 def proxy_creation_handler():
+    logger.debug("ODL PROXY - /SDNproxySetup")
+
     """Handles experiment/proxy creation
       request:
       {
@@ -158,12 +157,14 @@ def check_auth_header(headers):
 @get('/restconf/<url:path>')
 @put('/restconf/<url:path>')
 def do_proxy_jsonrpc(url):
+    logger.debug("ODL PROXY - /restconf/" + url)
 
     #TODO for headears
     token = request.headers.get('API-Token')
     authorization = request.headers.get('Authorization')
     accept = request.headers.get('Accept')
 
+    # check the headears parameter
     if not accept:
         accept = 'application/json'
 
@@ -183,23 +184,21 @@ def do_proxy_jsonrpc(url):
             msg = "ODL Proxy - Experiment not found!"
             return json.dumps({"msg": msg})
 
-    regex = 'config/opendaylight-inventory:nodes/node/openflow:([0-9]*)/table/([0-9]*)/flow/([0-9]*)'
-    title_search = re.search(regex, url, re.IGNORECASE)
+    nodesregex = 'config/opendaylight-inventory:nodes'
+    node_search = re.search(nodesregex, url, re.IGNORECASE)
+    flowregex = 'config/opendaylight-inventory:nodes/node/openflow:([0-9]*)/table/([0-9]*)/flow/([0-9]*)'
+    flow_search = re.search(flowregex, url, re.IGNORECASE)
+    urlODL = "http://" + os.environ['ODL_HOST'] + ":" + os.environ['ODL_PORT'] + "/restconf/" + url
 
-    if title_search:
-        nodeId = title_search.group(1)
-        tableId = int(title_search.group(2))
-        flowId = int(title_search.group(3))
+    if flow_search:
+        nodeId = flow_search.group(1)
+        tableId = int(flow_search.group(2))
+        flowId = int(flow_search.group(3))
 
         if tableId in tables:
-            #Ok redirect de request to ODL
-            #redirect("http://10.200.4.8:" + "8181/" + url)
-
             headers = {'Accept' : accept,
                        "Authorization": authorization
                        } #request.headers
-
-            urlODL = "http://10.200.4.8:" + "8181/restconf/" + url
 
             if request.method == "GET":
                 resp = requests.get(urlODL, headers=headers)
@@ -212,19 +211,32 @@ def do_proxy_jsonrpc(url):
                     return json.dumps({"msg": msg})
 
                 print "code:" + str(dataj)
-                resp = requests.get(urlODL, data=dataj, headers=headers)
+                resp = requests.put(urlODL, data=dataj, headers=headers)
 
-            print "code:" + str(resp.status_code)
-            print "******************"
-            print "headers:" + str(resp.headers)
-            print "******************"
-            print "content:" + str(resp.text)
-            print "******************"
-            print "content:" + str(resp.content)
+            logger.debug("ODL PROXY - /restconf/" + url + " resp.status_code " +  str(resp.status_code))
+            logger.debug("ODL PROXY - /restconf/" + url + " resp.headers " + str(resp.headers))
+            logger.debug("ODL PROXY - /restconf/" + url + " resp.text " + str(resp.text))
+            #logger.debug("ODL PROXY - /restconf/" + url + " resp.content " + str(resp.content))
+
+            response.status = resp.status_code
+            return resp.json()
+
         else:
             response.status = 400
             msg = "ODL Proxy - Bad Request! Don`t Modify Table " + tableId
             return json.dumps({"msg": msg})
+
+    elif node_search:
+        headers = {'Accept': accept,
+                   "Authorization": authorization
+                   }  # request.headers
+        resp = requests.get(urlODL, headers=headers)
+        logger.debug("ODL PROXY - /restconf/" + url + " resp.status_code " + str(resp.status_code))
+        logger.debug("ODL PROXY - /restconf/" + url + " resp.headers " + str(resp.headers))
+        logger.debug("ODL PROXY - /restconf/" + url + " resp.text " + str(resp.text))
+
+        response.status = resp.status_code
+        return resp.json()
 
     else:
         response.status = 404

@@ -13,20 +13,6 @@ class TestODLProxy(TestCase):
     #    self.set_env()
 
     def set_env(self):
-        #SET ENV VARS
-        '''
-        os.environ['OS_USERNAME'] = "admin"
-        os.environ['OS_PASSWORD'] = "admin"
-        os.environ['OS_AUTH_URL'] = "http://10.200.4.64:5000/v2.0/"
-        os.environ['OS_TENANT_NAME'] = "demo"
-
-
-        os.environ['OS_USERNAME'] = "openbaton"
-        os.environ['OS_PASSWORD'] = "openbaton"
-        os.environ['OS_AUTH_URL'] = "http://172.16.21.25:5000/v2.0/"
-        #os.environ['OS_TENANT_ID'] = "101732d86697496385264a795dc282ef"
-        os.environ['OS_PROJECT_ID'] = "101732d86697496385264a795dc282ef"
-        '''
 
         os.environ['OS_USERNAME'] = "admin"
         os.environ['OS_PASSWORD'] = "admin"

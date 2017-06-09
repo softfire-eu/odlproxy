@@ -17,7 +17,7 @@ class ODLDataRetriever():
         nodes = odl.nodes.list_all()
 
         for node in nodes:
-            print("#### Node ID ###### %s:", node.id)
+            #print("#### Node ID ###### %s:", node.id)
 
             tables_empty = []
             if  len(node.tables)!=0:
@@ -35,7 +35,7 @@ class ODLDataRetriever():
 
         for node in nodes:
             #print node.id
-            print("---tables of %s:",node.id)
+            #print("---tables of %s:",node.id)
 
             #print "---tables of %s:"%node.id
             tables = sorted(node.tables, key=lambda table: table.id)

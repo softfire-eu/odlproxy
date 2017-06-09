@@ -18,12 +18,3 @@ setup(name='odlproxy',
       scripts=['bin/odlproxy'],
       zip_safe=False)
 
-# CherryProxy cannot be downloaded with:
-#
-#   pip install CherryProxy because pip cannot find the download url from pypi website
-#
-# you need to manual install the package with the following command:
-#
-#   pip install https://bitbucket.org/decalage/cherryproxy/downloads/CherryProxy-0.12.zip -vvvv
-#
-#
