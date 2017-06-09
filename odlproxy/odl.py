@@ -1,6 +1,5 @@
 from odlclient.client import ODL
-from odlclient.main import _get_odl_client
-from odlproxy import odl_printer
+import odl_printer
 
 __author__ = 'Massimiliano Romano'
 

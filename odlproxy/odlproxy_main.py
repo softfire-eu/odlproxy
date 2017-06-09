@@ -1,7 +1,7 @@
 import os
 
-from odlproxy import odl_proxy_api
-from odlproxy.utils import get_logger
+import odl_proxy_api
+from utils import get_logger
 
 __author__ = 'Massimiliano Romano'
 
