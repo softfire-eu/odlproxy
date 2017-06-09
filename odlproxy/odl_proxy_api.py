@@ -14,7 +14,7 @@ logger = get_logger(__name__)
 
 _experiments = dict()
 _auth_secret = "90d82936f887a871df8cc82c1518a43e"
-_api_endpoint = "http://127.0.0.1:8001/"
+_api_endpoint = "http://10.200.4.30:8001/"
 
 
 _mapTable = dict()
@@ -161,17 +161,19 @@ def do_proxy_jsonrpc(url):
 
     #TODO for headears
     token = request.headers.get('API-Token')
-    authorization = request.headers.get('Authorization')
+    authorization = "Basic YWRtaW46YWRtaW4="
     accept = request.headers.get('Accept')
 
     # check the headears parameter
     if not accept:
         accept = 'application/json'
 
+    """
     if not authorization:
         response.status = 400
         msg = "ODL Proxy - Bad Request! Header Authorization NOT FOUND"
         return json.dumps({"msg": msg})
+    """
 
     if not token:
         response.status = 400
@@ -197,7 +199,8 @@ def do_proxy_jsonrpc(url):
 
         if tableId in tables:
             headers = {'Accept' : accept,
-                       "Authorization": authorization
+                       "Authorization": authorization,
+                       "Content-Type": "application/json"
                        } #request.headers
 
             if request.method == "GET":
@@ -205,12 +208,21 @@ def do_proxy_jsonrpc(url):
             elif request.method == "PUT":
                 try:
                     dataj = json.loads(request.body.read().decode("utf-8"))
+                    #flow_node = dataj['flow-node-inventory:table']
+
+                    #if flow_node:
+                    # for f_n in flow_node:
+                    #  flow_node_flow = f_n['flow']
+                    # if flow_node_flow:
+                    #         for f_n_f in flow_node_flow:
+                    #             flow_node_flow_match = f_n_f['match']
+									
                 except Exception as e:
                     response.status = 400
-                    msg = "ODL Proxy - Bad Request! " + e
+                    msg = "ODL Proxy - Bad Request! " + str(e)
                     return json.dumps({"msg": msg})
 
-                print "code:" + str(dataj)
+                    # print "code:" + str(dataj)
                 resp = requests.put(urlODL, data=dataj, headers=headers)
 
             logger.debug("ODL PROXY - /restconf/" + url + " resp.status_code " +  str(resp.status_code))
@@ -219,7 +231,7 @@ def do_proxy_jsonrpc(url):
             #logger.debug("ODL PROXY - /restconf/" + url + " resp.content " + str(resp.content))
 
             response.status = resp.status_code
-            return resp.json()
+            return resp.text
 
         else:
             response.status = 400
