@@ -1,6 +1,9 @@
+import httplib
 import os
 import bottle
 import re
+
+import logging
 import requests
 import openstack2_api
 from utils import get_logger
@@ -15,6 +18,14 @@ logger = get_logger(__name__)
 _experiments = dict()
 _auth_secret = "90d82936f887a871df8cc82c1518a43e"
 _api_endpoint = "http://10.200.4.30:8001/"
+
+#ENABLE HTTP LOGGING
+httplib.HTTPConnection.debuglevel = 1
+logging.basicConfig()
+logging.getLogger().setLevel(logging.DEBUG)
+req_log = logging.getLogger('requests.packages.urllib3')
+req_log.setLevel(logging.DEBUG)
+req_log.propagate = True
 
 
 _mapTable = dict()
@@ -207,7 +218,8 @@ def do_proxy_jsonrpc(url):
                 resp = requests.get(urlODL, headers=headers)
             elif request.method == "PUT":
                 try:
-                    dataj = json.loads(request.body.read().decode("utf-8"))
+                    dataj = json.loads(json.dumps(request.body.read().decode("utf-8"),ensure_ascii=True))
+                    #dataj = json.loads(request.body.read().decode("utf-8"))
                     #flow_node = dataj['flow-node-inventory:table']
 
                     #if flow_node:
@@ -234,8 +246,9 @@ def do_proxy_jsonrpc(url):
             return resp.text
 
         else:
-            response.status = 400
-            msg = "ODL Proxy - Bad Request! Don`t Modify Table " + tableId
+            response.status = 403
+            strTables = ''.join(str(e) for e in tables)
+            msg = "ODL Proxy - Forbidden can not modify table: " + str(tableId) + " you can only access tables " + strTables
             return json.dumps({"msg": msg})
 
     elif node_search:
