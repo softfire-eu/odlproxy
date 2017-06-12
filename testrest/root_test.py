@@ -146,7 +146,7 @@ for table_id in table_range:
 
     #put flow 1
     r = requests.put(table_flow_1_url,data=table_x_flow_1_json,headers=headers)
-    assert(r.status_code==200)
+    assert(r.status_code==200 or r.status_code==201)
 
     #and get flow 1
     r = requests.get(table_flow_1_url,headers=headers)
@@ -156,7 +156,7 @@ for table_id in table_range:
     forbidden_table_id = table_id + 3
 
     table_flow_1_url = table_x_flow_1_url.format(NODE_ID=node_id,TABLE_ID=forbidden_table_id)
-    table_x_flow_1_json = flow_1_json.replace("TABLE_ID",forbidden_table_id)
+    table_x_flow_1_json = flow_1_json.replace("TABLE_ID",str(forbidden_table_id))
 
     r = requests.put(table_flow_1_url,data=flow_1_json,headers=headers)
     assert(r.status_code==403)
