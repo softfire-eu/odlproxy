@@ -2,10 +2,10 @@ import httplib
 import os
 import bottle
 import re
-
 import logging
 import requests
 import openstack2_api
+import odl
 from utils import get_logger
 from bottle import post, get, delete, put
 from bottle import request, response
@@ -29,11 +29,11 @@ req_log.propagate = True
 
 
 _mapTable = dict()
-_mapTable[0] = { "table": [2,3,4], "assigned": False}
-_mapTable[1] = { "table": [5,6,7], "assigned": False}
-_mapTable[2] = { "table": [8,9,10], "assigned": False}
-_mapTable[3] = { "table": [11,12,13], "assigned": False}
-_mapTable[4] = { "table": [14,15,16], "assigned": False}
+_mapTable[0] = { "table": [2,3,4]   , "assigned": False, "experiment_id" :""}
+_mapTable[1] = { "table": [5,6,7]   , "assigned": False, "experiment_id" :""}
+_mapTable[2] = { "table": [8,9,10  ], "assigned": False, "experiment_id" :""}
+_mapTable[3] = { "table": [11,12,13], "assigned": False, "experiment_id" :""}
+_mapTable[4] = { "table": [14,15,16], "assigned": False, "experiment_id" :""}
 
 print(_mapTable)
 
@@ -69,6 +69,7 @@ def get_user_flowtables(tenant_id,experiment_id):
     for key, value in _mapTable.iteritems():
         if value["assigned"] == False:
            value["assigned"] = True
+           value["experiment_id"] = experiment_id
            return value["table"]
         else:
             return "ODL Proxy - Max concurrent Experiments reached - Max 5"
@@ -142,19 +143,59 @@ def delete_handler(token):
     """delete the mapping between experiment-token and tenant id
     :returns  200 but no body
     """
+
     if check_auth_header(request.headers):
+
+        # check the headears parameter
+        accept = request.headers.get('Accept')
+        if not accept:
+            accept = 'application/json'
+
+        authorization = "Basic YWRtaW46YWRtaW4="
+        #        x = _experiments[token]
+        #        del _experiments[token]
+
         if _experiments.pop(token, None) is None:
             response.status = 404
             msg = "Experiment not found!"
         else:
             response.status = 200
             msg = "Experiment successfully deleted!"
+            #Clear the table assigned to experimenter
+
+            nodes = odl.getAllNodes()
+            for key, value in _mapTable.iteritems():
+                if value["experiment_id"] == token:
+                    value["assigned"] = False
+                    value["experiment_id"] = ""
+                    tables = value["table"]
+                    break
+            headers = {'Accept': accept,
+                       "Authorization": authorization
+                       }
+            for node in nodes:
+                id = node.id
+                for table in tables :
+                    urlODL = "http://" + os.environ['ODL_HOST'] + ":" + os.environ['ODL_PORT'] + "/restconf/config/opendaylight-inventory:nodes/node/{NODE_ID}/table/{TABLE_ID}"
+                    urlODL = urlODL.format(NODE_ID=node.id, TABLE_ID=table)
+                    resp = requests.delete(urlODL, headers=headers)
+
+
         logger.debug(msg)
         response.headers['Content-Type'] = 'application/json'
         return json.dumps({"msg": msg})
 
     else:
         raise bottle.HTTPError(403, "Auth-Secret error!")
+
+
+
+
+
+def deleteFlow(self, url):
+
+
+    return True
 
 
 def check_auth_header(headers):
