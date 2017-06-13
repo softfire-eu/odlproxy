@@ -17,7 +17,7 @@ logger = get_logger(__name__)
 
 _experiments = dict()
 _auth_secret = "90d82936f887a871df8cc82c1518a43e"
-_api_endpoint = "http://10.200.4.30:8001/"
+_api_endpoint = "http://localhost:8001/"
 
 #ENABLE HTTP LOGGING
 httplib.HTTPConnection.debuglevel = 1
@@ -61,7 +61,7 @@ def get_ports(tenant_id):
 
     conn = openstack2_api.create_connection(auth_url, None, project_id, user, password)
 
-    ports = openstack2_api.list_ports(conn, project_id)
+    return openstack2_api.list_ports(conn, project_id)
 
 
 def get_user_flowtables(tenant_id,experiment_id):
@@ -123,8 +123,8 @@ def proxy_creation_handler():
             response.status = 500
             return "ODL Proxy - Duplicate experiment!"
 
-        #osClient = OpenstackClient()
-        #ports = osClient.get_ports(tenant_id)
+        ports = get_ports(tenant_id)
+
 
         _experiments[experiment_id] = {"tenant": tenant_id, "flow_tables": get_user_flowtables(tenant_id,experiment_id)}
 
@@ -180,23 +180,12 @@ def delete_handler(token):
                     urlODL = urlODL.format(NODE_ID=node.id, TABLE_ID=table)
                     resp = requests.delete(urlODL, headers=headers)
 
-
         logger.debug(msg)
         response.headers['Content-Type'] = 'application/json'
         return json.dumps({"msg": msg})
 
     else:
         raise bottle.HTTPError(403, "Auth-Secret error!")
-
-
-
-
-
-def deleteFlow(self, url):
-
-
-    return True
-
 
 def check_auth_header(headers):
     if "Auth-Secret" in headers.keys():
@@ -212,7 +201,7 @@ def do_proxy_jsonrpc(url):
     logger.debug("ODL PROXY - /restconf/" + url)
 
     #TODO for headears
-    token = request.headers.get('API-Token')
+    token = request.headers.get('API-Token')  #Token is experiment id
     authorization = "Basic YWRtaW46YWRtaW4="
     accept = request.headers.get('Accept')
 
@@ -232,8 +221,9 @@ def do_proxy_jsonrpc(url):
         msg = "ODL Proxy - Bad Request! Header API-Token NOT FOUND"
         return json.dumps({"msg": msg})
     else:
-        tables = _experiments[token]["flow_tables"]
-        if not tables:
+        if token in _experiments.keys():
+            tables = _experiments[token]["flow_tables"]
+        else:
             response.status = 400
             msg = "ODL Proxy - Experiment not found!"
             return json.dumps({"msg": msg})
@@ -259,16 +249,36 @@ def do_proxy_jsonrpc(url):
                 resp = requests.get(urlODL, headers=headers)
             elif request.method == "PUT":
                 try:
-                    dataj = json.loads(json.dumps(request.body.read().decode("utf-8"),ensure_ascii=True))
-                    #dataj = json.loads(request.body.read().decode("utf-8"))
-                    #flow_node = dataj['flow-node-inventory:table']
 
-                    #if flow_node:
-                    # for f_n in flow_node:
-                    #  flow_node_flow = f_n['flow']
-                    # if flow_node_flow:
-                    #         for f_n_f in flow_node_flow:
-                    #             flow_node_flow_match = f_n_f['match']
+                    #dataj = json.loads(json.dumps(request.body.read().decode("utf-8"),ensure_ascii=True))
+
+                    dataj = json.loads(request.body.read().decode("utf-8"))
+                    if 'flow-node-inventory:flow' in dataj:
+                        flow_node = dataj['flow-node-inventory:flow']
+                        for f_n in flow_node:
+                            if f_n['table_id'] in tables:
+                                 if 'instructions' in f_n:
+                                     flow_node_instructions = f_n['instructions']
+                                     if 'instruction' in flow_node_instructions:
+                                        instructions = flow_node_instructions['instruction']
+                                        for instruction in instructions:
+                                            if 'go-to-table' in instruction:
+                                                tableDestination = instruction['go-to-table']
+                                                if tableDestination in tables or tableDestination == 17 :
+                                                    print("go-to-table in range of experiment")
+                                                else:
+                                                    response.status = 403
+                                                    strTables = ','.join(str(e) for e in tables)
+                                                    msg = "ODL Proxy - Forbidden can not modify table: " + str(
+                                                        tableDestination) + " you can only access tables " + strTables
+                                                    return json.dumps({"msg": msg})
+
+                            else:
+                                response.status = 403
+                                strTables = ','.join(str(e) for e in tables)
+                                msg = "ODL Proxy - Forbidden can not modify table: " + str(
+                                    f_n['table_id']) + " you can only access tables " + strTables
+                                return json.dumps({"msg": msg})
 									
                 except Exception as e:
                     response.status = 400
@@ -276,6 +286,7 @@ def do_proxy_jsonrpc(url):
                     return json.dumps({"msg": msg})
 
                     # print "code:" + str(dataj)
+                dataj = json.dumps(dataj, ensure_ascii=False)
                 resp = requests.put(urlODL, data=dataj, headers=headers)
 
             logger.debug("ODL PROXY - /restconf/" + url + " resp.status_code " +  str(resp.status_code))
@@ -288,7 +299,7 @@ def do_proxy_jsonrpc(url):
 
         else:
             response.status = 403
-            strTables = ''.join(str(e) for e in tables)
+            strTables = ','.join(str(e) for e in tables)
             msg = "ODL Proxy - Forbidden can not modify table: " + str(tableId) + " you can only access tables " + strTables
             return json.dumps({"msg": msg})
 
