@@ -17,7 +17,8 @@ logger = get_logger(__name__)
 
 _experiments = dict()
 _auth_secret = "90d82936f887a871df8cc82c1518a43e"
-_api_endpoint = "http://localhost:8001/"
+#_api_endpoint = "http://localhost:8001/"
+
 _authorization = "Basic YWRtaW46YWRtaW4="
 
 #ENABLE HTTP LOGGING
@@ -229,8 +230,11 @@ def proxy_creation_handler():
 
         response.headers['Content-Type'] = 'application/json'
         response.headers['Cache-Control'] = 'no-cache'
+
+        url = "http://{HOSTNAME}:8001/".format(HOSTNAME=os.environ["ODLPROXY_PUBLIC_IP"])
+
         return json.dumps(
-            {"user-flow-tables": _experiments[experiment_id]["flow_tables"], "endpoint_url": _api_endpoint})
+            {"user-flow-tables": _experiments[experiment_id]["flow_tables"], "endpoint_url": url})
 
     except Exception as e:
         logger.error(e)

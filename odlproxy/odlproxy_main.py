@@ -49,6 +49,8 @@ def parse_args_and_set_env():
     os.environ['ODL_PORT'] = config.get("ODL", "ODL_PORT")
     os.environ['ODL_USER'] = config.get("ODL", "ODL_USER")
     os.environ['ODL_PASS'] = config.get("ODL", "ODL_PASS")
+    os.environ['ODLPROXY_PUBLIC_IP'] = config.get("ODLPROXY", "PUBLIC_IP")
+
 
 
 
