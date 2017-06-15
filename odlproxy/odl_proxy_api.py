@@ -406,7 +406,7 @@ def do_proxy_jsonrpc(url):
         if token in _experiments.keys():
             tables = _experiments[token]["flow_tables"]
         else:
-            response.status = 400
+            response.status = 403
             msg = "ODL Proxy - Experiment not found!"
             return json.dumps({"msg": msg})
 
