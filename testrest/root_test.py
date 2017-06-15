@@ -10,7 +10,8 @@ __author__ = 'Massimiliano Romano'
 #HOSTNAME_PORT="10.200.4.8:8001"
 HOSTNAME_PORT="10.200.4.30:8001"
 EXPERIMENT_ID="a5cfaf1e81f35fde41bef54e35772f2b"
-TENANT_ID="fed0b52c7e034d5785880613e78d4411"
+#TENANT_ID="fed0b52c7e034d5785880613e78d4411"
+TENANT_ID="11d54bf6419c4ec48fd0b267b11108d3"
 
 #ENABLE HTTP LOGGING
 httplib.HTTPConnection.debuglevel = 1
@@ -33,7 +34,7 @@ data = '''
 }}
 '''
 
-headers = {'user-Auth-Secret': '90d82936f887a871df8cc82c1518a43e', 'Content-Type': 'application/json'}
+headers = {'Auth-Secret': '90d82936f887a871df8cc82c1518a43e', 'Content-Type': 'application/json', 'Accept':'application/json'}
 
 
 post_token_data = data.format(EXPERIMENT_ID,TENANT_ID)
@@ -164,6 +165,86 @@ for table_id in table_range:
     r = requests.get(table_flow_1_url,headers=headers)
     assert(r.status_code==403)
 
+
+first_table_idx = table_range[0]
+
+
+output_node_connectory_body_template='''
+{
+    "flow-node-inventory:flow": [
+        {
+            "id": "1",
+            "flow-name": "1",
+            "match": {
+                "ipv4-destination": "10.0.10.2/24",
+                "ethernet-match": {
+                    "ethernet-type": {
+                        "type": 2048
+                    }
+                }
+            },
+            "priority": 2,
+            "table_id": TABLE_ID,
+            "instructions": {
+                "instruction": [
+                    {
+                        "order": 0,
+                        "apply-actions": {
+                            "action": [
+                                {
+                                    "order": 0,
+                                    "output-action": {
+                                        "output-node-connector":"ACTION_PAR"
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        }
+    ]
+}
+'''.replace("TABLE_ID",str(first_table_idx))
+
+'''
+ALLOWED output-node-connector:
+    TABLE
+    INPORT
+FORBIDDEN output-node-coonector:
+    UNSET
+    FLOOD
+    ANY
+'''
+
+output_node_connectory_body_TABLE = output_node_connectory_body_template.replace("ACTION_PAR","TABLE")
+output_node_connectory_body_INPORT = output_node_connectory_body_template.replace("ACTION_PAR","INPORT")
+output_node_connectory_body_FLOOD = output_node_connectory_body_template.replace("ACTION_PAR","FLOOD")
+output_node_connectory_body_ANY = output_node_connectory_body_template.replace("ACTION_PAR","ANY")
+
+
+table_flow_1_url = table_x_flow_1_url.format(NODE_ID=node_id,TABLE_ID=table_id)
+
+r = requests.put(table_flow_1_url,data=output_node_connectory_body_TABLE,headers=headers)
+assert(r.status_code==200 or r.status_code==201)
+
+r = requests.put(table_flow_1_url,data=output_node_connectory_body_INPORT,headers=headers)
+assert(r.status_code==200 or r.status_code==201)
+
+r = requests.put(table_flow_1_url,data=output_node_connectory_body_FLOOD,headers=headers)
+assert(r.status_code==403)
+
+r = requests.put(table_flow_1_url,data=output_node_connectory_body_ANY,headers=headers)
+assert(r.status_code==403)
+
+#CLOSE THE EXPERIMENT
+close_exp_url = 'http://{HOSTNAME_PORT}/SDNproxySetup/{TOKEN}'.format(HOSTNAME_PORT=HOSTNAME_PORT,TOKEN=EXPERIMENT_ID)
+print("Closing experiment, sending a DELETE to {}...".format(close_exp_url))
+response = requests.delete(url, headers=headers)
+
+#Now try to put a flow to a previous assigned table, but the experiment is closed so I should get a 403
+r = requests.put(table_flow_1_url,data=output_node_connectory_body_TABLE,headers=headers)
+assert(r.status_code==403)
 
 
 
