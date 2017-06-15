@@ -36,15 +36,41 @@ sudo mkdir /var/log/odlproxy
 sudo chmod 755 /var/log/odlproxy
 ```
 
+### 4. Create config file
+Default odlproxy config file is /etc/odlproxy/odlproxy.ini
+So create it with the following 
+
+Here below you find an example of odlproxy config file
+```ini
+[ODLPROXY]
+#IP used to build the URL returned to the Experimenter, so it must be reacheable from the Experimenter and the ODLProxy must be binded on this address
+PUBLIC_IP = 10.10.10.20
+
+[OPENSTACK]
+OS_USERNAME = admin
+OS_USERNAME_ID = ca81dc60f6c84f39b4568ca29f053e5f
+OS_PASSWORD = adminpwd
+OS_AUTH_URL = http://10.10.10.10/identity/v2.0/
+OS_TENANT_ID = 11d54bf6419c4ec48fd0b267b11098d3
+OS_PROJECT_ID = 11d54bf6419c4ec48fd0b267b11098d3
+
+[ODL]
+ODL_HOST = 10.10.10.10
+ODL_PORT = 8181
+ODL_USER = admin
+ODL_PASS = adminpwd
+```
+
+
 ## ODLProxy start
 
-### 4. Run odlproxy
+### 1. Run odlproxy
 ```bash
 cd /FOLDER/WHERE/TO/INSTALL/ODLPROXY/odlproxy
 python odlproxy_main.py &
 ```
 
-### 5. Check odlproxy is running
+### 2. Check odlproxy is running
 After the previous command you should see the following output
 ```bash
 INFO: eu.softfire.odl_proxy_api:250                 :  starting up
