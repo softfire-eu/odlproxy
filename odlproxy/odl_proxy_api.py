@@ -17,7 +17,7 @@ logger = get_logger(__name__)
 
 _experiments = dict()
 _auth_secret = "90d82936f887a871df8cc82c1518a43e"
-_api_endpoint = "http://localhost:8001/"
+_api_endpoint = "http://10.200.4.30:8001/"
 _authorization = "Basic YWRtaW46YWRtaW4="
 
 #ENABLE HTTP LOGGING
@@ -35,9 +35,6 @@ _mapTable[2] = { "table": [8,9,10  ], "assigned": False, "experiment_id" :""}
 _mapTable[3] = { "table": [11,12,13], "assigned": False, "experiment_id" :""}
 _mapTable[4] = { "table": [14,15,16], "assigned": False, "experiment_id" :""}
 
-
-
-print(_mapTable)
 
 @get('/SDNproxy/<token>')
 def proxy_details_handler(token):
@@ -300,38 +297,62 @@ def delete_handler(token):
         #        x = _experiments[token]
         #        del _experiments[token]
 
-        if _experiments.pop(token, None) is None:
-            response.status = 404
-            msg = "Experiment not found!"
-        else:
-            response.status = 200
-            msg = "Experiment successfully deleted!"
-            #Clear the table assigned to experimenter
+        for key, value in _experiments.iteritems():
+            if key == token :
+                tenant_id = value["tenant"]
 
-            nodes = odl.getAllNodes()
-            for key, value in _mapTable.iteritems():
-                if value["experiment_id"] == token:
-                    value["assigned"] = False
-                    value["experiment_id"] = ""
-                    tables = value["table"]
-                    
-                    break
-            headers = {'Accept': accept,
-                       "Authorization": _authorization
-                       }
-            for node in nodes:
-                id = node.id
-                for table in tables :
-                    urlODL = "http://" + os.environ['ODL_HOST'] + ":" + os.environ['ODL_PORT'] + "/restconf/config/opendaylight-inventory:nodes/node/{NODE_ID}/table/{TABLE_ID}"
-                    urlODL = urlODL.format(NODE_ID=node.id, TABLE_ID=table)
-                    resp = requests.delete(urlODL, headers=headers)
+                if _experiments.pop(token, None) is None:
+                    response.status = 404
+                    msg = "Experiment not found!"
+                else:
+                    response.status = 200
+                    msg = "Experiment successfully deleted!"
+                    #Clear the table assigned to experimenter
 
-        logger.debug(msg)
-        response.headers['Content-Type'] = 'application/json'
-        return json.dumps({"msg": msg})
+                    nodes = odl.getAllNodes()
+                    for key, value in _mapTable.iteritems():
+                        if value["experiment_id"] == token:
+                            value["assigned"] = False
+                            value["experiment_id"] = ""
+                            tablesExperiment = value["table"]
+                            tablesExperiment.append(0)  # Add Table 0 for remove overide flow
+                            break
 
-    else:
-        raise bottle.HTTPError(403, "Auth-Secret error!")
+                    headers = {'Accept': accept,
+                               "Authorization": _authorization
+                               }
+                    for node in nodes:
+                        id = node.id
+                        for table in tablesExperiment :
+                            urlODL = "http://" + os.environ['ODL_HOST'] + ":" + os.environ['ODL_PORT'] + "/restconf/config/opendaylight-inventory:nodes/node/{NODE_ID}/table/{TABLE_ID}"
+                            urlODL = urlODL.format(NODE_ID=node.id, TABLE_ID=table)
+                            if table == 0:
+                                resp = requests.get(urlODL, headers=headers)
+                                dataj= resp.json()
+                            else:
+                                resp = requests.delete(urlODL, headers=headers)
+
+                        if 'flow-node-inventory:table' in dataj:
+                            tables = dataj['flow-node-inventory:table']
+                            for table in tables:
+                                if 'flow' in table:
+                                    flows = table['flow']
+                                    for flow in flows:
+                                        if 'id' in flow:
+                                            idFlow = flow['id']
+                                            for tab in tablesExperiment:
+                                                nameFlow = tenant_id + "_" + str(tab)
+                                                if idFlow.startswith(nameFlow):
+                                                    urlODL = "http://" + os.environ['ODL_HOST'] + ":" + os.environ['ODL_PORT'] + "/restconf/config/opendaylight-inventory:nodes/node/{NODE_ID}/table/{TABLE_ID}/flow/{FLOW_ID}"
+                                                    urlODL = urlODL.format(NODE_ID=node.id, TABLE_ID=0, FLOW_ID=idFlow)
+                                                    resp = requests.delete(urlODL, headers=headers)
+
+                logger.debug(msg)
+                response.headers['Content-Type'] = 'application/json'
+                return json.dumps({"msg": msg})
+
+            else:
+                raise bottle.HTTPError(403, "Auth-Secret error!")
 
 def check_auth_header(headers):
     if "Auth-Secret" in headers.keys():
