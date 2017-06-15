@@ -2,8 +2,6 @@ from __future__ import print_function
 
 __author__ = 'Massimiliano Romano'
 
-
-
 import json
 
 import prettytable
