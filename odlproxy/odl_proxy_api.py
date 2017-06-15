@@ -18,6 +18,7 @@ logger = get_logger(__name__)
 _experiments = dict()
 _auth_secret = "90d82936f887a871df8cc82c1518a43e"
 _api_endpoint = "http://localhost:8001/"
+_authorization = "Basic YWRtaW46YWRtaW4="
 
 #ENABLE HTTP LOGGING
 httplib.HTTPConnection.debuglevel = 1
@@ -27,13 +28,14 @@ req_log = logging.getLogger('requests.packages.urllib3')
 req_log.setLevel(logging.DEBUG)
 req_log.propagate = True
 
-
 _mapTable = dict()
 _mapTable[0] = { "table": [2,3,4]   , "assigned": False, "experiment_id" :""}
 _mapTable[1] = { "table": [5,6,7]   , "assigned": False, "experiment_id" :""}
 _mapTable[2] = { "table": [8,9,10  ], "assigned": False, "experiment_id" :""}
 _mapTable[3] = { "table": [11,12,13], "assigned": False, "experiment_id" :""}
 _mapTable[4] = { "table": [14,15,16], "assigned": False, "experiment_id" :""}
+
+
 
 print(_mapTable)
 
@@ -61,7 +63,8 @@ def get_ports(tenant_id):
 
     conn = openstack2_api.create_connection(auth_url, None, project_id, user, password)
 
-    return openstack2_api.list_ports(conn, project_id)
+    #Trasform object Generetor to List
+    return list(openstack2_api.list_ports(conn, project_id))
 
 
 def get_user_flowtables(tenant_id,experiment_id):
@@ -123,10 +126,106 @@ def proxy_creation_handler():
             response.status = 500
             return "ODL Proxy - Duplicate experiment!"
 
+        #Edit the flow on table 0 to first table on range
+        nodes = odl.getAllNodes()
         ports = get_ports(tenant_id)
 
+        # Get flow on table 0
+        urlODL = "http://" + os.environ['ODL_HOST'] + ":" + os.environ['ODL_PORT'] + "/restconf/config/opendaylight-inventory:nodes/node/{NODE_ID}/table/0"
+        tableExperiment = get_user_flowtables(tenant_id, experiment_id)
 
-        _experiments[experiment_id] = {"tenant": tenant_id, "flow_tables": get_user_flowtables(tenant_id,experiment_id)}
+        for node in nodes:
+            try:
+                urlODL = urlODL.format(NODE_ID=node.id)
+                headers = {
+                           "Authorization": _authorization,
+                           "Content-Type": "application/json"
+                           }  # request.headers
+
+                resp = requests.get(urlODL, headers=headers)
+                dataj = resp.json()
+                if 'flow-node-inventory:table' in dataj:
+                    tables = dataj['flow-node-inventory:table']
+                    for table in tables:
+                        if 'flow' in table:
+                            flows = table['flow']
+                            for flow in flows:
+                                if 'id' in flow:
+                                    for port in ports:
+                                        portId = port.id
+                                        flowId = flow['id']
+                                        if port.id in flow['id']:
+                                            #Edit Flow
+                                            flow1Put = flow
+                                            flow2Put = flow
+
+                                            # TODO # builDataFirstPut(flow1Put)
+                                            # Prepare the first json request
+                                            if 'match' in flow:
+                                                match =  flow['match']
+                                                if 'in-port' in match:
+                                                    portOvs = match['in-port'].split(':')[2]
+
+                                            tableDestination = getGoToTAble(flow,tableExperiment[0])
+
+                                            #At the moment only in case table 17 rewrite the flow
+                                            if tableDestination == 17:
+                                                flow1Put = setGoToTAble(flow1Put,tableExperiment[0])
+                                            else:
+                                                raise Exception('ODL PROXY - IN FLOW ' + flow['id'] + ' GO TO TABLE NOT 17' )
+
+                                            flow1Put['priority'] = flow['priority'] * 10
+                                            flow1Put['id'] = tenant_id + '_' + str(tableExperiment[0]) + '_'+  portOvs
+                                            flow1Put['flow-name'] = tenant_id + '_' + str(tableExperiment[0]) + '_' + portOvs
+
+                                            urlODLput1 = urlODL + '/flow/' + flow1Put['flow-name']
+
+                                            flow1TagWrapper = dict()
+                                            flow1TagWrapper["flow-node-inventory:flow"] = [flow1Put]
+
+                                            strdata = json.dumps(flow1TagWrapper, ensure_ascii=False)
+
+                                            resp1 = requests.put(urlODLput1, data=strdata, headers=headers)
+
+                                            #logger.debug("ODL PROXY - resp.status_code " + str(resp1.status_code))
+                                            #logger.debug("ODL PROXY - resp.headers " + str(resp1.headers))
+                                            #logger.debug("ODL PROXY - resp.text " + str(resp1.text))
+
+                                            # TODO # builDataSecondPut(flow2Put)
+                                            # Prepare the second json request
+                                            flow2Put['priority'] = flow['priority'] * 10
+                                            flow2Put['id'] = tenant_id + '_' +str(17) + '_' + portOvs
+                                            flow2Put['flow-name'] = tenant_id + '_' + str(17) + '_' + portOvs
+                                            flow2Put['table_id'] = tableExperiment[0]
+                                            flow2Put = setGoToTAble(flow2Put, 17)
+
+                                            if 'in-port' in flow2Put['match']:
+                                                del flow2Put['match']['in-port']
+
+                                            writeMetaData = getWriteMetaData(flow2Put)
+                                            flow2Put = deleteWriteMetaData(flow2Put)
+                                            flow2Put['match'] = writeMetaData
+
+                                            urlODLnew = urlODL[:-1]
+                                            urlODLput2 = urlODLnew + str(tableExperiment[0]) + '/flow/' + flow2Put['flow-name']
+
+                                            flow2TagWrapper = dict()
+                                            flow2TagWrapper["flow-node-inventory:flow"] = [flow2Put]
+
+                                            strdata2 = json.dumps(flow2TagWrapper, ensure_ascii=False)
+                                            resp2 = requests.put(urlODLput2, data=strdata2, headers=headers)
+
+                                            #logger.debug("ODL PROXY - resp.status_code " + str(resp2.status_code))
+                                            #logger.debug("ODL PROXY - resp.headers " + str(resp2.headers))
+                                            #logger.debug("ODL PROXY - resp.text " + str(resp2.text))
+
+
+            except Exception as e:
+                response.status = 400
+                msg = "ODL Proxy " + str(e)
+                return json.dumps({"msg": msg})
+
+        _experiments[experiment_id] = {"tenant": tenant_id, "flow_tables": tableExperiment}
 
         response.headers['Content-Type'] = 'application/json'
         response.headers['Cache-Control'] = 'no-cache'
@@ -137,6 +236,53 @@ def proxy_creation_handler():
         logger.error(e)
         response.status = 500
 
+def getGoToTAble(flow,tables):
+    if 'instructions' in flow:
+        flow_node_instructions = flow['instructions']
+        if 'instruction' in flow_node_instructions:
+            instructions = flow_node_instructions['instruction']
+            for instruction in instructions:
+                if 'go-to-table' in instruction:
+                    goToTable = instruction['go-to-table']
+                    return goToTable['table_id']
+
+    else:
+        return -1
+
+def setGoToTAble(flow,numberTable):
+    if 'instructions' in flow:
+        flow_node_instructions = flow['instructions']
+        if 'instruction' in flow_node_instructions:
+            instructions = flow_node_instructions['instruction']
+            for instruction in instructions:
+                if 'go-to-table' in instruction:
+                    goToTable = instruction['go-to-table']
+                    goToTable['table_id'] = numberTable
+    return flow
+
+def getWriteMetaData(flow):
+    if 'instructions' in flow:
+        flow_node_instructions = flow['instructions']
+        if 'instruction' in flow_node_instructions:
+            instructions = flow_node_instructions['instruction']
+            for instruction in instructions:
+                if 'write-metadata' in instruction:
+                    del instruction['order']
+                    inst = dict()
+                    inst['metadata'] = instruction['write-metadata']
+                    return inst
+
+def deleteWriteMetaData(flow):
+    if 'instructions' in flow:
+        flow_node_instructions = flow['instructions']
+        if 'instruction' in flow_node_instructions:
+            instructions = flow_node_instructions['instruction']
+            count = 0
+            for instruction in instructions:
+                if 'write-metadata' in instruction:
+                    del flow['instructions']['instruction'][count]
+                count = count + 1
+    return flow
 
 @delete('/SDNproxy/<token>')
 def delete_handler(token):
@@ -151,7 +297,6 @@ def delete_handler(token):
         if not accept:
             accept = 'application/json'
 
-        authorization = "Basic YWRtaW46YWRtaW4="
         #        x = _experiments[token]
         #        del _experiments[token]
 
@@ -169,9 +314,10 @@ def delete_handler(token):
                     value["assigned"] = False
                     value["experiment_id"] = ""
                     tables = value["table"]
+                    
                     break
             headers = {'Accept': accept,
-                       "Authorization": authorization
+                       "Authorization": _authorization
                        }
             for node in nodes:
                 id = node.id
@@ -195,6 +341,22 @@ def check_auth_header(headers):
             return True
     return False
 
+
+
+# @delete('/restconf/<url:path>')
+    # check the headears parameter
+
+    # check the url
+
+    # EXEC
+
+# @put('/restconf/<url:path>')
+    # check the headears parameter
+
+    # check the url
+
+    # EXEC
+
 @get('/restconf/<url:path>')
 @put('/restconf/<url:path>')
 def do_proxy_jsonrpc(url):
@@ -202,7 +364,6 @@ def do_proxy_jsonrpc(url):
 
     #TODO for headears
     token = request.headers.get('API-Token')  #Token is experiment id
-    authorization = "Basic YWRtaW46YWRtaW4="
     accept = request.headers.get('Accept')
 
     # check the headears parameter
@@ -241,7 +402,7 @@ def do_proxy_jsonrpc(url):
 
         if tableId in tables:
             headers = {'Accept' : accept,
-                       "Authorization": authorization,
+                       "Authorization": _authorization,
                        "Content-Type": "application/json"
                        } #request.headers
 
@@ -263,7 +424,8 @@ def do_proxy_jsonrpc(url):
                                         instructions = flow_node_instructions['instruction']
                                         for instruction in instructions:
                                             if 'go-to-table' in instruction:
-                                                tableDestination = instruction['go-to-table']
+                                                goToTable = instruction['go-to-table']
+                                                tableDestination = goToTable['table_id']
                                                 if tableDestination in tables or tableDestination == 17 :
                                                     print("go-to-table in range of experiment")
                                                 else:
@@ -305,7 +467,7 @@ def do_proxy_jsonrpc(url):
 
     elif node_search:
         headers = {'Accept': accept,
-                   "Authorization": authorization
+                   "Authorization": _authorization
                    }  # request.headers
         resp = requests.get(urlODL, headers=headers)
         logger.debug("ODL PROXY - /restconf/" + url + " resp.status_code " + str(resp.status_code))
