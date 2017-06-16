@@ -554,6 +554,21 @@ def putRestConf(url):
                                                 msg = "ODL Proxy - Forbidden can not modify table: " + str(
                                                     tableDestination) + " you can only access tables " + strTables
                                                 return json.dumps({"msg": msg})
+                                        # Check the attribute output-node-connector
+                                        elif 'apply-actions' in instruction:
+                                            applyActions = instruction['apply-actions']
+                                            if 'action' in applyActions:
+                                                actions = applyActions['action']
+                                                for action in actions :
+                                                    if 'output-action' in action:
+                                                        outputAction = action['output-action']
+                                                        if 'output-node-connector' in outputAction:
+                                                            if outputAction['output-node-connector'].lower() == "table" or outputAction['output-node-connector'].lower() == "inport" or outputAction['output-node-connector'].lower() == "in-port" :
+                                                                logger.debug("ODL PROXY - PUT - /restconf/" + url + " output-node-connector " + outputAction['output-node-connector'] + " is allowed")
+                                                            else:
+                                                                response.status = 403
+                                                                msg = "ODL Proxy - Forbidden can not use tag output-node-connector with value : " + outputAction['output-node-connector']
+                                                                return json.dumps({"msg": msg})
 
 
                         else:
