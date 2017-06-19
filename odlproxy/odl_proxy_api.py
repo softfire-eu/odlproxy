@@ -137,6 +137,12 @@ def proxy_creation_handler():
             response.status = 500
             return "ODL Proxy - Duplicate experiment!"
 
+        elif len(_experiments) > 0 : #Check if the tenant already associated
+            for key, value in _experiments.iteritems():
+                if value['tenant'] == tenant_id:
+                    response.status = 500
+                    return "ODL Proxy - Tenant: " + tenant_id + " already associated!"
+
         #Edit the flow on table 0 to first table on range
         nodes = odl.getAllNodes()
         ports = get_ports(tenant_id)
