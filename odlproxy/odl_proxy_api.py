@@ -1,5 +1,7 @@
+import functools
 import httplib
 import os
+import threading
 import bottle
 import re
 import logging
@@ -35,6 +37,7 @@ _mapTable[1] = { "table": [5,6,7]   , "assigned": False, "experiment_id" :""}
 _mapTable[2] = { "table": [8,9,10  ], "assigned": False, "experiment_id" :""}
 _mapTable[3] = { "table": [11,12,13], "assigned": False, "experiment_id" :""}
 _mapTable[4] = { "table": [14,15,16], "assigned": False, "experiment_id" :""}
+
 
 
 @get('/SDNproxy/<token>')
@@ -87,6 +90,16 @@ def get_user_flowtables(tenant_id,experiment_id):
         # print "flows_of_port %d" % flows_of_port
 
 
+def synchronized(wrapped):
+    lock = threading.Lock()
+    @functools.wraps(wrapped)
+    def _wrap(*args, **kwargs):
+        print "Calling '%s' with Lock %s" % (wrapped.__name__, id(lock))
+        with lock:
+            return wrapped(*args, **kwargs)
+    return _wrap
+
+@synchronized
 @post('/SDNproxySetup')
 def proxy_creation_handler():
     logger.debug("ODL PROXY - /SDNproxySetup")
