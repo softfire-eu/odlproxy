@@ -366,41 +366,46 @@ def check_auth_header(headers):
             return True
     return False
 
-
-
-# @delete('/restconf/<url:path>')
-    # check the headears parameter
+def check_url(url):
 
     # check the url
+    flowregex = 'config/opendaylight-inventory:nodes/node/openflow:([0-9]*)/table/([0-9]*)/flow/([0-9]*)'
+    tableregex = 'config/opendaylight-inventory:nodes/node/openflow:([0-9]*)/table/([0-9]*)'
+    noderegex = 'config/opendaylight-inventory:nodes/node/openflow:([0-9]*)/'
+    nodesregex = 'config/opendaylight-inventory:nodes'
 
-    # EXEC
+    flow_search = re.search(flowregex, url, re.IGNORECASE)
+    table_search = re.search(tableregex, url, re.IGNORECASE)
+    node_search = re.search(noderegex, url, re.IGNORECASE)
+    nodes_search = re.search(nodesregex, url, re.IGNORECASE)
 
-# @put('/restconf/<url:path>')
+    if flow_search:
+        regexSearch = flow_search
+        target = "flow"
+    elif table_search :
+        regexSearch = table_search
+        target = "table"
+    elif node_search:
+        regexSearch = node_search
+        target = "node"
+    elif nodes_search:
+        regexSearch = nodes_search
+        target = "nodes"
+
+    return {"regex": regexSearch, "target": target}
+
+
+@delete('/restconf/<url:path>')
+def deleteRestConf(url):
+    logger.debug("ODL PROXY - delete - /restconf/" + url)
     # check the headears parameter
-
-    # check the url
-
-    # EXEC
-
-@get('/restconf/<url:path>')
-@put('/restconf/<url:path>')
-def do_proxy_jsonrpc(url):
-    logger.debug("ODL PROXY - /restconf/" + url)
-
-    #TODO for headears
-    token = request.headers.get('API-Token')  #Token is experiment id
+    # TODO for headears
+    token = request.headers.get('API-Token')  # Token is experiment id
     accept = request.headers.get('Accept')
 
     # check the headears parameter
     if not accept:
         accept = 'application/json'
-
-    """
-    if not authorization:
-        response.status = 400
-        msg = "ODL Proxy - Bad Request! Header Authorization NOT FOUND"
-        return json.dumps({"msg": msg})
-    """
 
     if not token:
         response.status = 400
@@ -414,16 +419,245 @@ def do_proxy_jsonrpc(url):
             msg = "ODL Proxy - Experiment not found!"
             return json.dumps({"msg": msg})
 
-    nodesregex = 'config/opendaylight-inventory:nodes'
-    node_search = re.search(nodesregex, url, re.IGNORECASE)
-    flowregex = 'config/opendaylight-inventory:nodes/node/openflow:([0-9]*)/table/([0-9]*)/flow/([0-9]*)'
-    flow_search = re.search(flowregex, url, re.IGNORECASE)
+    # check the url
+    jsonCheckUrl = check_url(url)
+    urlODL = "http://" + os.environ['ODL_HOST'] + ":" + os.environ['ODL_PORT'] + "/restconf/" + url
+    headers = {'Accept': accept,
+               "Authorization": _authorization,
+               "Content-Type": "application/json"
+               }  # request.headers
+
+    # EXEC
+    if jsonCheckUrl["target"] == "flow":
+        tableId = int(jsonCheckUrl["regex"].group(2))
+        if tableId in tables:
+            resp = requests.delete(urlODL, headers=headers)
+    else:
+        response.status = 403
+        strTables = ','.join(str(e) for e in tables)
+        msg = "ODL Proxy - Forbidden can not delete " + jsonCheckUrl["target"]
+        return json.dumps({"msg": msg})
+
+    response.status = resp.status_code
+    return resp.text
+
+@get('/restconf/<url:path>')
+def getRestConf(url):
+    logger.debug("ODL PROXY - GET - /restconf/" + url)
+    # check the headears parameter
+    # TODO for headears
+    token = request.headers.get('API-Token')  # Token is experiment id
+    accept = request.headers.get('Accept')
+
+    # check the headears parameter
+    if not accept:
+        accept = 'application/json'
+
+    if not token:
+        response.status = 400
+        msg = "ODL Proxy - Bad Request! Header API-Token NOT FOUND"
+        return json.dumps({"msg": msg})
+    else:
+        if token in _experiments.keys():
+            tables = _experiments[token]["flow_tables"]
+        else:
+            response.status = 403
+            msg = "ODL Proxy - Experiment not found!"
+            return json.dumps({"msg": msg})
+
+    # check the url
+    jsonCheckUrl = check_url(url)
+    urlODL = "http://" + os.environ['ODL_HOST'] + ":" + os.environ['ODL_PORT'] + "/restconf/" + url
+    headers = {'Accept': accept,
+               "Authorization": _authorization,
+               "Content-Type": "application/json"
+               }  # request.headers
+
+    # EXEC
+    if jsonCheckUrl["target"] == "flow" or jsonCheckUrl["target"] == "table":
+        tableId = int(jsonCheckUrl["regex"].group(2))
+        if tableId in tables:
+            resp = requests.get(urlODL, headers=headers)
+        else:
+            response.status = 403
+            strTables = ','.join(str(e) for e in tables)
+            msg = "ODL Proxy - Forbidden can not view " + jsonCheckUrl["target"] + " on table: " + str(
+                tableId) + " you can only access tables " + strTables
+            return json.dumps({"msg": msg})
+    else:
+        resp = requests.get(urlODL, headers=headers)
+
+    response.status = resp.status_code
+    return resp.text
+
+@put('/restconf/<url:path>')
+def putRestConf(url):
+    logger.debug("ODL PROXY - PUT - /restconf/" + url)
+    # check the headears parameter
+    # TODO for headears
+    token = request.headers.get('API-Token')  # Token is experiment id
+    accept = request.headers.get('Accept')
+
+    # check the headears parameter
+    if not accept:
+        accept = 'application/json'
+
+    if not token:
+        response.status = 400
+        msg = "ODL Proxy - Bad Request! Header API-Token NOT FOUND"
+        return json.dumps({"msg": msg})
+    else:
+        if token in _experiments.keys():
+            tables = _experiments[token]["flow_tables"]
+        else:
+            response.status = 403
+            msg = "ODL Proxy - Experiment not found!"
+            return json.dumps({"msg": msg})
+
+    # check the url
+    jsonCheckUrl = check_url(url)
+    urlODL = "http://" + os.environ['ODL_HOST'] + ":" + os.environ['ODL_PORT'] + "/restconf/" + url
+    headers = {'Accept': accept,
+               "Authorization": _authorization,
+               "Content-Type": "application/json"
+               }  # request.headers
+    # EXEC
+    if jsonCheckUrl["target"] == "flow":
+        #nodeId = jsonCheckUrl["regex"].group(1)
+        tableId = int(jsonCheckUrl["regex"].group(2))
+        #flowId = int(jsonCheckUrl["regex"].group(3))
+
+        if tableId in tables:
+            try:
+                # dataj = json.loads(json.dumps(request.body.read().decode("utf-8"),ensure_ascii=True))
+                dataj = json.loads(request.body.read().decode("utf-8"))
+
+                if 'flow-node-inventory:flow' in dataj:
+                    flow_node = dataj['flow-node-inventory:flow']
+                    for f_n in flow_node:
+                        if f_n['table_id'] in tables:
+                            if 'instructions' in f_n:
+                                flow_node_instructions = f_n['instructions']
+                                if 'instruction' in flow_node_instructions:
+                                    instructions = flow_node_instructions['instruction']
+                                    for instruction in instructions:
+
+                                        #Check the attribute go-to-table
+                                        if 'go-to-table' in instruction:
+                                            goToTable = instruction['go-to-table']
+                                            tableDestination = goToTable['table_id']
+                                            if tableDestination in tables or tableDestination == 17:
+                                                logger.debug("ODL PROXY - PUT - /restconf/" + url  + " go-to-table in range of experiment")
+                                            else:
+                                                response.status = 403
+                                                strTables = ','.join(str(e) for e in tables)
+                                                msg = "ODL Proxy - Forbidden can not modify table: " + str(
+                                                    tableDestination) + " you can only access tables " + strTables
+                                                return json.dumps({"msg": msg})
+                                        # Check the attribute output-node-connector
+                                        elif 'apply-actions' in instruction:
+                                            applyActions = instruction['apply-actions']
+                                            if 'action' in applyActions:
+                                                actions = applyActions['action']
+                                                for action in actions :
+                                                    if 'output-action' in action:
+                                                        outputAction = action['output-action']
+                                                        if 'output-node-connector' in outputAction:
+                                                            if outputAction['output-node-connector'].lower() == "table" or outputAction['output-node-connector'].lower() == "inport" or outputAction['output-node-connector'].lower() == "in-port" :
+                                                                logger.debug("ODL PROXY - PUT - /restconf/" + url + " output-node-connector " + outputAction['output-node-connector'] + " is allowed")
+                                                            else:
+                                                                response.status = 403
+                                                                msg = "ODL Proxy - Forbidden can not use tag output-node-connector with value : " + outputAction['output-node-connector']
+                                                                return json.dumps({"msg": msg})
+
+
+                        else:
+                            response.status = 403
+                            strTables = ','.join(str(e) for e in tables)
+                            msg = "ODL Proxy - Forbidden can not modify table: " + str(
+                                f_n['table_id']) + " you can only access tables " + strTables
+                            return json.dumps({"msg": msg})
+
+            except Exception as e:
+                response.status = 400
+                msg = "ODL Proxy - Bad Request! " + str(e)
+                return json.dumps({"msg": msg})
+
+                # print "code:" + str(dataj)
+            dataj = json.dumps(dataj, ensure_ascii=False)
+            resp = requests.put(urlODL, data=dataj, headers=headers)
+
+            logger.debug("ODL PROXY - /restconf/" + url + " resp.status_code " + str(resp.status_code))
+            logger.debug("ODL PROXY - /restconf/" + url + " resp.headers " + str(resp.headers))
+            logger.debug("ODL PROXY - /restconf/" + url + " resp.text " + str(resp.text))
+            # logger.debug("ODL PROXY - /restconf/" + url + " resp.content " + str(resp.content))
+
+            response.status = resp.status_code
+            return resp.text
+
+        else:
+            response.status = 403
+            strTables = ','.join(str(e) for e in tables)
+            msg = "ODL Proxy - Forbidden can not modify flow on table: " + str(
+                tableId) + " you can only access tables " + strTables
+            return json.dumps({"msg": msg})
+
+    elif jsonCheckUrl["target"] == "table" or jsonCheckUrl["target"] == "nodes" or jsonCheckUrl["target"] == "node":
+        response.status = 403
+        msg = "ODL Proxy - Forbidden can not modify " + jsonCheckUrl["target"]
+        return json.dumps({"msg": msg})
+
+    else:
+        response.status = 404
+        msg = "ODL Proxy - Resource Not Found!"
+        return json.dumps({"msg": msg})
+
+#@get('/restconf/<url:path>')
+#@put('/restconf/<url:path>')
+#@delete('/restconf/<url:path>')
+"""
+def do_proxy_jsonrpc(url):
+    logger.debug("ODL PROXY - /restconf/" + url)
+
+    # TODO for headears
+    token = request.headers.get('API-Token')  # Token is experiment id
+    accept = request.headers.get('Accept')
+
+    # check the headears parameter
+    if not accept:
+        accept = 'application/json'
+
+    if not token:
+        response.status = 400
+        msg = "ODL Proxy - Bad Request! Header API-Token NOT FOUND"
+        return json.dumps({"msg": msg})
+    else:
+        if token in _experiments.keys():
+            tables = _experiments[token]["flow_tables"]
+        else:
+            response.status = 403
+            msg = "ODL Proxy - Experiment not found!"
+            return json.dumps({"msg": msg})
+
+    # check the url
+
+    jsonCheckUrl =  check_url(url)
     urlODL = "http://" + os.environ['ODL_HOST'] + ":" + os.environ['ODL_PORT'] + "/restconf/" + url
 
-    if flow_search:
-        nodeId = flow_search.group(1)
-        tableId = int(flow_search.group(2))
-        flowId = int(flow_search.group(3))
+
+    #flowregex = 'config/opendaylight-inventory:nodes/node/openflow:([0-9]*)/table/([0-9]*)/flow/([0-9]*)'
+    #flow_search = re.search(flowregex, url, re.IGNORECASE)
+
+    #tableregex = 'config/opendaylight-inventory:nodes/node/openflow:([0-9]*)/table/([0-9]*)'
+    #table_search = re.search(tableregex, url, re.IGNORECASE)
+
+    #nodesregex = 'config/opendaylight-inventory:nodes'
+    #node_search = re.search(nodesregex, url, re.IGNORECASE)
+
+    if jsonCheckUrl["target"] == "flow":
+        nodeId = jsonCheckUrl["regex"].group(1)
+        tableId = int(jsonCheckUrl["regex"].group(2))
+        flowId = int(jsonCheckUrl["regex"].group(3))
 
         if tableId in tables:
             headers = {'Accept' : accept,
@@ -490,7 +724,7 @@ def do_proxy_jsonrpc(url):
             msg = "ODL Proxy - Forbidden can not modify table: " + str(tableId) + " you can only access tables " + strTables
             return json.dumps({"msg": msg})
 
-    elif node_search:
+    elif jsonCheckUrl["target"] == "nodes":
         headers = {'Accept': accept,
                    "Authorization": _authorization
                    }  # request.headers
@@ -506,7 +740,7 @@ def do_proxy_jsonrpc(url):
         response.status = 404
         msg = "ODL Proxy - Resource Not Found!"
         return json.dumps({"msg": msg})
-
+ """
 
 def start():
     global _mySdnFilter

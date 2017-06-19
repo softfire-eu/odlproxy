@@ -91,6 +91,63 @@ for node in nodes_dict["nodes"]["node"]:
 assert (node_id != None)
 
 
+#PUSH TABLE X FLOW 1
+flow_1_json='''
+{
+  "flow-node-inventory:flow": [
+    {
+      "id": "1",
+      "flow-name": "Foo",
+      "match": {
+        "ipv4-destination": "10.0.10.2/24",
+        "ethernet-match": {
+          "ethernet-type": {
+            "type": 2048
+          }
+        }
+      },
+      "priority": 2,
+      "table_id": TABLE_ID,
+      "instructions": {
+        "instruction": [
+          {
+            "order": 0,
+            "apply-actions": {
+              "action": [
+                {
+                  "order": 0,
+                  "dec-nw-ttl": {}
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
+'''
+
+
+#GET TABLE 1 FLOW 1
+table_x_flow_1_url=urlparse.urljoin(odl_url,"restconf/config/opendaylight-inventory:nodes/node/{NODE_ID}/table/{TABLE_ID}/flow/1")
+
+table_0_flow_1_url = table_x_flow_1_url.format(NODE_ID=node_id,TABLE_ID=0)
+table_0_flow_1_json =  table_x_flow_1_json = flow_1_json.replace("TABLE_ID","0")
+
+
+# PUT FLOW 1 IN TABLE 0
+r = requests.put(table_0_flow_1_url,data=table_0_flow_1_json,headers=headers)
+assert(r.status_code==403)
+
+
+# PUT TABLE 100
+table_x_url=urlparse.urljoin(odl_url,"restconf/config/opendaylight-inventory:nodes/node/{NODE_ID}/table/{TABLE_ID}/")
+table_100_url=table_x_url.format(NODE_ID=node_id,TABLE_ID=0)
+
+r = requests.put(table_100_url,headers=headers)
+assert(r.status_code==403)
+
 
 for table_id in table_range:
     #GET REQUEST
@@ -98,50 +155,14 @@ for table_id in table_range:
     #I expect that request with table_id+3 returns 403 forbidden
     print(table_id)
 
-    #GET TABLE 1 FLOW 1
-    table_x_flow_1_url=urlparse.urljoin(odl_url,"restconf/config/opendaylight-inventory:nodes/node/{NODE_ID}/table/{TABLE_ID}/flow/1")
+
     #table_x_flow_1_url=odl_url + "restconf/config/opendaylight-inventory:nodes/node/{NODE_ID}/table/{TABLE_ID}/flow/1"
 
     table_flow_1_url = table_x_flow_1_url.format(NODE_ID=node_id,TABLE_ID=table_id)
 
 
 
-    #PUSH TABLE 1 FLOW 1
-    flow_1_json='''
-    {
-      "flow-node-inventory:flow": [
-        {
-          "id": "1",
-          "flow-name": "Foo",
-          "match": {
-            "ipv4-destination": "10.0.10.2/24",
-            "ethernet-match": {
-              "ethernet-type": {
-                "type": 2048
-              }
-            }
-          },
-          "priority": 2,
-          "table_id": TABLE_ID,
-          "instructions": {
-            "instruction": [
-              {
-                "order": 0,
-                "apply-actions": {
-                  "action": [
-                    {
-                      "order": 0,
-                      "dec-nw-ttl": {}
-                    }
-                  ]
-                }
-              }
-            ]
-          }
-        }
-      ]
-    }
-    '''
+
 
     table_x_flow_1_json = flow_1_json.replace("TABLE_ID",str(table_id))
 
@@ -159,7 +180,7 @@ for table_id in table_range:
     table_flow_1_url = table_x_flow_1_url.format(NODE_ID=node_id,TABLE_ID=forbidden_table_id)
     table_x_flow_1_json = flow_1_json.replace("TABLE_ID",str(forbidden_table_id))
 
-    r = requests.put(table_flow_1_url,data=flow_1_json,headers=headers)
+    r = requests.put(table_flow_1_url,data=table_x_flow_1_json,headers=headers)
     assert(r.status_code==403)
 
     r = requests.get(table_flow_1_url,headers=headers)
@@ -217,25 +238,25 @@ FORBIDDEN output-node-coonector:
     ANY
 '''
 
-output_node_connectory_body_TABLE = output_node_connectory_body_template.replace("ACTION_PAR","TABLE")
-output_node_connectory_body_INPORT = output_node_connectory_body_template.replace("ACTION_PAR","INPORT")
-output_node_connectory_body_FLOOD = output_node_connectory_body_template.replace("ACTION_PAR","FLOOD")
-output_node_connectory_body_ANY = output_node_connectory_body_template.replace("ACTION_PAR","ANY")
+output_node_connector_body_TABLE = output_node_connectory_body_template.replace("ACTION_PAR","TABLE")
+output_node_connector_body_INPORT = output_node_connectory_body_template.replace("ACTION_PAR","INPORT")
+output_node_connector_body_FLOOD = output_node_connectory_body_template.replace("ACTION_PAR","FLOOD")
+output_node_connector_body_ANY = output_node_connectory_body_template.replace("ACTION_PAR","ANY")
 
 
 table_flow_1_url = table_x_flow_1_url.format(NODE_ID=node_id,TABLE_ID=table_id)
 
-r = requests.put(table_flow_1_url,data=output_node_connectory_body_TABLE,headers=headers)
+r = requests.put(table_flow_1_url,data=output_node_connector_body_TABLE,headers=headers)
 assert(r.status_code==200 or r.status_code==201)
 
-r = requests.put(table_flow_1_url,data=output_node_connectory_body_INPORT,headers=headers)
+r = requests.put(table_flow_1_url,data=output_node_connector_body_INPORT,headers=headers)
 assert(r.status_code==200 or r.status_code==201)
 
-r = requests.put(table_flow_1_url,data=output_node_connectory_body_FLOOD,headers=headers)
-#assert(r.status_code==403)
+r = requests.put(table_flow_1_url,data=output_node_connector_body_FLOOD,headers=headers)
+assert(r.status_code==403)
 
-r = requests.put(table_flow_1_url,data=output_node_connectory_body_ANY,headers=headers)
-#assert(r.status_code==403)
+r = requests.put(table_flow_1_url,data=output_node_connector_body_ANY,headers=headers)
+assert(r.status_code==403)
 
 #CLOSE THE EXPERIMENT
 close_exp_url = 'http://{HOSTNAME_PORT}/SDNproxy/{TOKEN}'.format(HOSTNAME_PORT=HOSTNAME_PORT,TOKEN=EXPERIMENT_ID)
@@ -244,7 +265,7 @@ r = requests.delete(close_exp_url, headers=headers)
 assert(r.status_code==200)
 
 #Now try to put a flow to a previous assigned table, but the experiment is closed so I should get a 403
-r = requests.put(table_flow_1_url,data=output_node_connectory_body_TABLE,headers=headers)
+r = requests.put(table_flow_1_url,data=output_node_connector_body_TABLE,headers=headers)
 assert(r.status_code==403)
 
 
