@@ -13,6 +13,7 @@ from bottle import post, get, delete, put
 from bottle import request, response
 import json
 
+
 __author__ = 'Massimiliano Romano'
 
 logger = get_logger(__name__)
@@ -37,8 +38,6 @@ _mapTable[1] = { "table": [5,6,7]   , "assigned": False, "experiment_id" :""}
 _mapTable[2] = { "table": [8,9,10  ], "assigned": False, "experiment_id" :""}
 _mapTable[3] = { "table": [11,12,13], "assigned": False, "experiment_id" :""}
 _mapTable[4] = { "table": [14,15,16], "assigned": False, "experiment_id" :""}
-
-
 
 @get('/SDNproxy/<token>')
 def proxy_details_handler(token):
@@ -762,8 +761,9 @@ def do_proxy_jsonrpc(url):
  """
 
 def start():
-    global _mySdnFilter
+    #global _mySdnFilter
     #_experiments["test01"] = {"tenant": "123invalid456", "flow_tables": 300}
     logger.info("starting up")
     #_mySdnFilter = WhitelistFilter(["help", "list.methods"])
     bottle.run(host='0.0.0.0', port=8001, reloader=True)
+

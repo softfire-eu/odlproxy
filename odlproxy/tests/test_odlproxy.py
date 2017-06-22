@@ -48,7 +48,7 @@ class TestODLProxy(TestCase):
         odl.getFlows()
 
     def t_est_is_string(self):
-        s = odlproxy.odlproxy_main()
+        #s = odlproxy.odlproxy_main()
 
 
         self.assertTrue(isinstance(s, basestring))
