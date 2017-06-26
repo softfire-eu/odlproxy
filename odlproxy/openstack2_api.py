@@ -1,5 +1,6 @@
 from openstack import connection
 from openstack import profile
+
 from utils import get_logger
 
 logger = get_logger(__name__)
@@ -33,10 +34,19 @@ def list_ports(conn,tenant_id):
     #print(port)
 
     #Port filtered to project_id
+
     return conn.network.ports(project_id= tenant_id)
+
+
 
 def list_networks(conn):
     logger.debug("ODL PROXY - list_networks from Openstack")
 
     for network in conn.network.networks():
         print(network)
+
+
+def getServer(conn,serverdId):
+    logger.debug("ODL PROXY - list_networks from Openstack")
+    credentials = get_nova_credentials()
+    nova_client = nvclient.Client(**credentials)

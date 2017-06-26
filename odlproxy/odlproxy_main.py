@@ -1,12 +1,9 @@
 import os
-
-
-import pika
 import odl_proxy_api
 import sys
 import ConfigParser
+import odl_proxy_listner
 from concurrent.futures import ThreadPoolExecutor
-from time import sleep
 from utils import get_logger
 
 __author__ = 'Massimiliano Romano'
@@ -76,75 +73,7 @@ def parse_args_and_set_env():
     os.environ['ODL_PASS'] = "admin"
     '''
 
-def nova_callback(ch, method, properties, body):
-    """
-    Method used by method nova_amq() to filter messages by type of message.
 
-    :param ch: refers to the head of the protocol
-    :param method: refers to the method used in callback
-    :param properties: refers to the proprieties of the message
-    :param body: refers to the message transmitted
-    """
-
-    print '---------------------------------------------------------'
-    print 'called callback...'
-    print "routing key=%s" % method.routing_key
-    print "exchange=%s" % method.exchange
-
-    print body
-    #payload = json.loads(body)
-
-def listenerNotifications():
-    logger.info("create listener to rabbit")
-
-    '''
-    #transport_url = 'rabbit://stackrabbit:stackqueue@10.200.4.8:5672/'
-
-    #control_exchange = 'nova'
-
-    #    transport = oslo_messaging.get_notification_transport(cfg.CONF,transport_url )
-    #    targets = [
-        oslo_messaging.Target(topic='nova')
-        #oslo_messaging.Target(topic='notifications_bis')
-    ]
-    endpoints = [
-        olsoMessagingHandler.NotificationEndpoint(),
-        olsoMessagingHandler.ErrorEndpoint()
-    ]
-
-    server = oslo_messaging.get_notification_listener(transport, targets,
-                                                      endpoints ,allow_requeue=True, executor='eventlet')
-    server.start()
-    server.wait()
-    '''
-
-    connection = pika.BlockingConnection(pika.ConnectionParameters(host=os.environ['RABBIT_HOST'],
-                                                                   port=int(os.environ['RABBIT_PORT']),
-                                                                   credentials=pika.PlainCredentials(username=os.environ['RABBIT_USER'],
-                                                                                                     password=os.environ['RABBIT_PASS'])
-                                                                   ))
-
-    channel = connection.channel()
-
-    result = channel.queue_declare(exclusive=True)
-    queue_name = result.method.queue
-
-    print "queue_name: %s" % queue_name
-
-    # channel.exchange_declare(exchange='heat', type='topic')
-    # using routing_key
-    # channel.queue_bind(exchange='openstack', queue=queue_name, routing_key='notifications.#')
-    # channel.queue_bind(exchange='openstack', queue=queue_name, routing_key='notifications.#')
-    # get all messages on heat
-    # channel.queue_bind(exchange='heat', queue=queue_name, routing_key='#')
-
-    channel.queue_bind(exchange='nova', queue=queue_name, routing_key='notifications.#')
-
-    # channel.queue_bind(exchange='ceilometer', queue=queue_name, routing_key='#')
-
-    channel.basic_consume(nova_callback, queue=queue_name, no_ack=True)
-    channel.start_consuming()
-    print 'consuming started'
 
 
 def odlproxy_main():
@@ -154,18 +83,17 @@ def odlproxy_main():
 
     pool = ThreadPoolExecutor(3)
     pool.submit(odl_proxy_api.start)
-    pool.submit(listenerNotifications())
+    pool.submit(odl_proxy_listner.listenerNotifications())
     #print( 'primo' + str(future.done()))
     #sleep(5)
     #print('secondo' + str(future.done()))
     #print(future.result())
 
 
-
-
-
 if __name__ == '__main__':
+    print __name__
     odlproxy_main()
-
+else:
+    print __name__
 
 
