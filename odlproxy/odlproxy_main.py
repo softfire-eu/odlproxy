@@ -1,8 +1,9 @@
 import os
-
 import odl_proxy_api
 import sys
 import ConfigParser
+import odl_proxy_listner
+from concurrent.futures import ThreadPoolExecutor
 from utils import get_logger
 
 __author__ = 'Massimiliano Romano'
@@ -44,15 +45,16 @@ def parse_args_and_set_env():
     os.environ['OS_TENANT_ID'] =    config.get("OPENSTACK", "OS_TENANT_ID")
     os.environ['OS_PROJECT_ID'] =   config.get("OPENSTACK", "OS_PROJECT_ID")
 
-
     os.environ['ODL_HOST'] = config.get("ODL", "ODL_HOST")
     os.environ['ODL_PORT'] = config.get("ODL", "ODL_PORT")
     os.environ['ODL_USER'] = config.get("ODL", "ODL_USER")
     os.environ['ODL_PASS'] = config.get("ODL", "ODL_PASS")
     os.environ['ODLPROXY_PUBLIC_IP'] = config.get("ODLPROXY", "PUBLIC_IP")
 
-
-
+    os.environ['RABBIT_HOST'] = config.get("RABBIT", "RABBIT_HOST")
+    os.environ['RABBIT_PORT'] = config.get("RABBIT", "RABBIT_PORT")
+    os.environ['RABBIT_USER'] = config.get("RABBIT", "RABBIT_USER")
+    os.environ['RABBIT_PASS'] = config.get("RABBIT", "RABBIT_PASS")
 
     # SET ENV VARS
     '''
@@ -72,14 +74,26 @@ def parse_args_and_set_env():
     '''
 
 
+
+
 def odlproxy_main():
     #logger.info("starting up")
     parse_args_and_set_env()
+    #    odl_proxy_api.start()
 
-    odl_proxy_api.start()
+    pool = ThreadPoolExecutor(3)
+    pool.submit(odl_proxy_api.start)
+    pool.submit(odl_proxy_listner.listenerNotifications())
+    #print( 'primo' + str(future.done()))
+    #sleep(5)
+    #print('secondo' + str(future.done()))
+    #print(future.result())
 
 
 if __name__ == '__main__':
+    print __name__
     odlproxy_main()
+else:
+    print __name__
 
 
