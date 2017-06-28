@@ -29,11 +29,16 @@ def nova_callback(ch, method, properties, body):
     tenant_id = oslo_message['_context_tenant']
     if event == "compute.instance.create.end":
         #create the flow
-        odl_proxy_api.createFlowFromVM(tenant_id)
+        server_id_create = oslo_message['payload']['instance_id']
+        odl_proxy_api.createFlowFromVM(server_id_create,tenant_id)
+        print "server_id_create : " +  server_id_create
         print "create"
     elif event == "compute.instance.delete.end":
         #delete the flow
-
+        # TODO prendere il server ID corretto
+        server_id_delete = oslo_message['payload']['instance_id']
+        odl_proxy_api.deleteFlowFromVM(server_id_delete,tenant_id)
+        print "server_id_delete : " + server_id_delete
         print "delete"
 
 

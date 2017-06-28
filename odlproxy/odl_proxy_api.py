@@ -53,6 +53,25 @@ def proxy_details_handler(token):
         raise bottle.HTTPError(403, "Auth-Secret error!")
 
 
+
+def get_port(server_id,tenant_id):
+    logger.debug("ODL PROXY - get_port for tenant :" + tenant_id + " and Instance ID : " + server_id)
+    auth_url = os.environ['OS_AUTH_URL']
+    user = os.environ['OS_USERNAME']
+    password = os.environ['OS_PASSWORD']
+    project_id = tenant_id
+
+    conn = openstack2_api.create_connection(auth_url, None, project_id, user, password)
+
+    # Trasform object Generetor to List
+    ports = list(openstack2_api.list_ports(conn, project_id))
+
+    for port in ports:
+        if server_id == port.device_id:
+            return port
+
+
+
 def get_ports(tenant_id):
     logger.debug("ODL PROXY - get_ports for tenant :" + tenant_id)
     auth_url = os.environ['OS_AUTH_URL']
@@ -111,7 +130,7 @@ def getTableExperiments(tenant_id):
             return value['flow_tables']
 
 
-def createFlowFromVM(tenant_id):
+def deleteFlowFromVM(server_id,tenant_id):
     if checkTenatExist(tenant_id):
         headers = {
             "Authorization": _authorization,
@@ -120,30 +139,73 @@ def createFlowFromVM(tenant_id):
 
         # Edit the flow on table 0 to first table on range
         nodes = odl.getAllNodes()
-        ports = get_ports(tenant_id)
+        port = get_port(server_id, tenant_id)
+
+        tableExperiment = getTableExperiments(tenant_id)
+        urlODL = "http://" + os.environ['ODL_HOST'] + ":" + os.environ['ODL_PORT'] + "/restconf/config/opendaylight-inventory:nodes/node/{NODE_ID}/table/{TABLE_ID}"
+        urlODLflow = "http://" + os.environ['ODL_HOST'] + ":" + os.environ['ODL_PORT'] + "/restconf/config/opendaylight-inventory:nodes/node/{NODE_ID}/table/{TABLE_ID}/flow/{FLOW_ID}"
+
+        for node in nodes:
+
+            flowsTable0 = getFlowsTable(urlODL, node, 0, headers)
+            if flowsTable0:
+                for flow in flowsTable0:
+                    if "id" in flow:
+                        flowId = flow['id']
+                        if port.id in flowId and node.id in flowId:
+                            urlODLTable0 = urlODLflow.format(NODE_ID=node.id, TABLE_ID=0, FLOW_ID=flowId)
+                            respTable0 = requests.delete(urlODLTable0, headers=headers)
+
+            flowsTableFirstExperiment = getFlowsTable(urlODL, node, tableExperiment[0], headers)
+            if flowsTableFirstExperiment:
+                for flowFirstExperiment in flowsTableFirstExperiment:
+                    if "id" in flowFirstExperiment:
+                        flowId = flowFirstExperiment['id']
+                        if port.id in flowId and node.id in flowId:
+                            urlODLTableFirstExperiment = urlODLflow.format(NODE_ID=node.id, TABLE_ID=tableExperiment[0], FLOW_ID=flowId)
+                            respFirstExperiment = requests.delete(urlODLTableFirstExperiment, headers=headers)
+
+
+
+
+def createFlowFromVM(server_id,tenant_id):
+    if checkTenatExist(tenant_id):
+        headers = {
+            "Authorization": _authorization,
+            "Content-Type": "application/json"
+        }  # request.headers
+
+        # Edit the flow on table 0 to first table on range
+        nodes = odl.getAllNodes()
+        #ports = get_ports(tenant_id)
+        port = get_port(server_id, tenant_id)
 
         # Get flow on table 0
-        urlODL = "http://" + os.environ['ODL_HOST'] + ":" + os.environ['ODL_PORT'] + "/restconf/config/opendaylight-inventory:nodes/node/{NODE_ID}/table/0"
+        urlODL = "http://" + os.environ['ODL_HOST'] + ":" + os.environ['ODL_PORT'] + "/restconf/config/opendaylight-inventory:nodes/node/{NODE_ID}/table/{TABLE_ID}"
         tableExperiment = getTableExperiments(tenant_id)
 
         for node in nodes:
-            urlODL = urlODL.format(NODE_ID=node.id)
+
             try:
-                flows = getFlowsTable0(urlODL, node,headers)
+                flows = getFlowsTable(urlODL, node, 0, headers)
                 flowsFiltered = filterFlow(flows,type,node,tenant_id)
-                for port in ports:
-                    for flowOriginal in flowsFiltered["flowsOriginal"]:
-                        if port.id in flowOriginal["flow-name"]:
-                            if checkPortInFlows(flowsFiltered["flowsCustom"],port.id):
-                                print "Flow already overwritten"
-                            else:
-                                #create the custom Flow
-                                overrideFlow(flowOriginal, tableExperiment, tenant_id, port, urlODL, headers)
+
+                for flowOriginal in flowsFiltered["flowsOriginal"]:
+                    if port.id in flowOriginal["flow-name"]:
+                        if checkPortInFlows(flowsFiltered["flowsCustom"],port.id):
+                            print "Flow already overwritten"
+                        else:
+                            #create the custom Flow
+
+                            overrideFlow(flowOriginal, tableExperiment, tenant_id, port, urlODL, headers, node.id)
 
             except Exception as e:
                 response.status = 400
                 msg = "ODL Proxy " + str(e)
                 return json.dumps({"msg": msg})
+
+
+
 def checkPortInFlows(flows,portId):
     founded = False
     for flowCustom in flows:
@@ -171,10 +233,15 @@ def filterFlow(flows,type,node,tenant_id):
             flowsOriginal.append(flow);
             print "odl"
 
-    return {
+    if len(flowsOriginal) > 0:
+        return {
             "flowsCustom": flowsCustom,
             "flowsOriginal": flowsOriginal
-            }
+        }
+    else:
+        raise Exception('ODL PROXY - EMPTY FLOWS ORIGINAL for node:port')
+
+
 
 @synchronized
 @post('/SDNproxySetup')
@@ -224,7 +291,7 @@ def proxy_creation_handler():
         ports = get_ports(tenant_id)
 
         # Get flow on table 0
-        urlODL = "http://" + os.environ['ODL_HOST'] + ":" + os.environ['ODL_PORT'] + "/restconf/config/opendaylight-inventory:nodes/node/{NODE_ID}/table/0"
+        urlODL = "http://" + os.environ['ODL_HOST'] + ":" + os.environ['ODL_PORT'] + "/restconf/config/opendaylight-inventory:nodes/node/{NODE_ID}/table/{TABLE_ID}"
         tableExperiment = get_user_flowtables(tenant_id, experiment_id)
 
         headers = {
@@ -233,14 +300,13 @@ def proxy_creation_handler():
         }  # request.headers
 
         for node in nodes:
-            urlODL = urlODL.format(NODE_ID=node.id)
             try:
-                flows = getFlowsTable0(urlODL, node,headers)
+                flows = getFlowsTable(urlODL, node,0,headers)
                 for flow in flows:
                     if 'id' in flow:
                         for port in ports:
                             if port.id in flow['id']:
-                                overrideFlow(flow, tableExperiment, tenant_id, port, urlODL, headers)
+                                overrideFlow(flow, tableExperiment, tenant_id, port, urlODL, headers,node.id)
 
             except Exception as e:
                 response.status = 400
@@ -261,7 +327,7 @@ def proxy_creation_handler():
         logger.error(e)
         response.status = 500
 
-def overrideFlow(flow,tableExperiment,tenant_id,port,urlODL,headers):
+def overrideFlow(flow,tableExperiment,tenant_id,port,urlODL,headers,nodeId):
     #Edit Flow
     flow1Put = flow
     flow2Put = flow
@@ -270,25 +336,39 @@ def overrideFlow(flow,tableExperiment,tenant_id,port,urlODL,headers):
 
     # Prepare the first json request
     strdata = builDataFirstPut(flow, flow1Put, tableExperiment, tenant_id, port,portOvs)
-    urlODLput1 = urlODL + '/flow/' + flow1Put['flow-name']
-    resp1 = requests.put(urlODLput1, data=strdata, headers=headers)
 
-    #logger.debug("ODL PROXY - resp.status_code " + str(resp1.status_code))
-    #logger.debug("ODL PROXY - resp.headers " + str(resp1.headers))
-    #logger.debug("ODL PROXY - resp.text " + str(resp1.text))
+    if strdata:
+        urlTable1 = urlODL.format(NODE_ID = nodeId, TABLE_ID= '0')
+        urlODLput1 = urlTable1 + '/flow/' + flow1Put['flow-name']
+        resp1 = requests.put(urlODLput1, data=strdata, headers=headers)
 
-    # Prepare the second json request
-    strdata2 = builDataSecondPut(flow, flow2Put, tableExperiment, tenant_id,port, portOvs)
-    urlODLnew = urlODL[:-1]
-    urlODLput2 = urlODLnew + str(tableExperiment[0]) + '/flow/' + flow2Put['flow-name']
-    resp2 = requests.put(urlODLput2, data=strdata2, headers=headers)
+        #logger.debug("ODL PROXY - resp.status_code " + str(resp1.status_code))
+        #logger.debug("ODL PROXY - resp.headers " + str(resp1.headers))
+        #logger.debug("ODL PROXY - resp.text " + str(resp1.text))
 
-    #logger.debug("ODL PROXY - resp.status_code " + str(resp2.status_code))
-    #logger.debug("ODL PROXY - resp.headers " + str(resp2.headers))
-    #logger.debug("ODL PROXY - resp.text " + str(resp2.text))
+        if resp1.status_code == 200 or resp1.status_code == 201:
+
+            # Prepare the second json request
+            strdata2 = builDataSecondPut(flow, flow2Put, tableExperiment, tenant_id,port, portOvs)
+            urlTable2 =  urlODL.format(NODE_ID = nodeId, TABLE_ID=str(tableExperiment[0]))
+            urlODLput2 = urlTable2 + '/flow/' + flow2Put['flow-name']
+            resp2 = requests.put(urlODLput2, data=strdata2, headers=headers)
+
+            #logger.debug("ODL PROXY - resp.status_code " + str(resp2.status_code))
+            #logger.debug("ODL PROXY - resp.headers " + str(resp2.headers))
+            #logger.debug("ODL PROXY - resp.text " + str(resp2.text))
+
+def getFlowsTable(urlODL, node,table,headers):
+    urlODL = urlODL.format(NODE_ID=node.id, TABLE_ID= table)
+    resp = requests.get(urlODL, headers=headers)
+    dataj = resp.json()
+    if 'flow-node-inventory:table' in dataj:
+        tables = dataj['flow-node-inventory:table']
+        return tables[0]['flow']
+
+
 
 def getFlowsTable0(urlODL, node,headers):
-    urlODL = urlODL.format(NODE_ID=node.id)
     resp = requests.get(urlODL, headers=headers)
     dataj = resp.json()
     if 'flow-node-inventory:table' in dataj:
@@ -328,7 +408,8 @@ def builDataFirstPut(flow,flow1Put,tableExperiment,tenant_id,port,portOvs):
     if tableDestination == 17:
         flow1Put = setGoToTAble(flow1Put, tableExperiment[0])
     else:
-        raise Exception('ODL PROXY - IN FLOW ' + flow['id'] + ' GO TO TABLE NOT 17')
+        logger.debug('ODL PROXY - IN FLOW ' + flow['id'] + ' GO TO TABLE NOT 17')
+        return None
 
     flow1Put['priority'] = flow['priority'] * 10
     flow1Put['id'] = tenant_id + '_' + str(tableExperiment[0]) + '_' + portOvs + '_' + port.id
