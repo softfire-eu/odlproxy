@@ -20,6 +20,7 @@ The following dependencies must be installed with the following commands (make s
 pip install python-odlclient==0.0.1.dev13
 pip install bottle==0.12.13
 pip install openstacksdk==0.9.16
+pip install python-novaclient==9.0.1
 ```
 
 
