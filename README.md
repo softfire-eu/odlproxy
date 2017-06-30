@@ -59,6 +59,12 @@ ODL_HOST = 10.10.10.10
 ODL_PORT = 8181
 ODL_USER = admin
 ODL_PASS = adminpwd
+
+[RABBIT]
+RABBIT_HOST = 10.10.10.10
+RABBIT_PORT = 5672
+RABBIT_USER = admin
+RABBIT_PASS = adminpwd
 ```
 
 
