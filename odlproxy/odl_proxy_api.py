@@ -6,7 +6,7 @@ import bottle
 import re
 import logging
 import requests
-from paste.cowbell import insert_body
+
 
 import openstack2_api
 import odl
