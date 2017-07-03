@@ -21,7 +21,8 @@ pip install python-odlclient==0.0.1.dev13
 pip install bottle==0.12.13
 pip install openstacksdk==0.9.16
 pip install python-novaclient==9.0.1
-pip install pika
+pip install pika==0.10.0
+pip install futures==3.1.1
 ```
 
 
@@ -47,6 +48,7 @@ Here below you find an example of odlproxy config file
 [ODLPROXY]
 #IP used to build the URL returned to the Experimenter, so it must be reacheable from the Experimenter and the ODLProxy must be binded on this address
 PUBLIC_IP = 10.10.10.20
+AUTH_SECRET = 90d82936f887a871df8cc82c1518a43e
 
 [OPENSTACK]
 OS_USERNAME = admin

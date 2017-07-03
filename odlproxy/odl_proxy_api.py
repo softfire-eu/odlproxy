@@ -1,3 +1,4 @@
+import copy
 import functools
 import httplib
 import os
@@ -6,10 +7,9 @@ import bottle
 import re
 import logging
 import requests
-
-
 import openstack2_api
 import odl
+
 from utils import get_logger
 from bottle import post, get, delete, put
 from bottle import request, response
@@ -20,7 +20,7 @@ __author__ = 'Massimiliano Romano'
 logger = get_logger(__name__)
 
 _experiments = dict()
-_auth_secret = "90d82936f887a871df8cc82c1518a43e"
+#_auth_secret = os.environ['ODLPROXY_AUTH_SECRET']
 #_api_endpoint = "http://localhost:8001/"
 
 _authorization = "Basic YWRtaW46YWRtaW4="
@@ -36,7 +36,7 @@ req_log.propagate = True
 _mapTable = dict()
 _mapTable[0] = { "table": [2,3,4]   , "assigned": False, "experiment_id" :""}
 _mapTable[1] = { "table": [5,6,7]   , "assigned": False, "experiment_id" :""}
-_mapTable[2] = { "table": [8,9,10  ], "assigned": False, "experiment_id" :""}
+_mapTable[2] = { "table": [8,9,10]  , "assigned": False, "experiment_id" :""}
 _mapTable[3] = { "table": [11,12,13], "assigned": False, "experiment_id" :""}
 _mapTable[4] = { "table": [14,15,16], "assigned": False, "experiment_id" :""}
 
@@ -326,7 +326,8 @@ def proxy_creation_handler():
         response.headers['Cache-Control'] = 'no-cache'
 
         url = "http://{HOSTNAME}:8001/".format(HOSTNAME=os.environ["ODLPROXY_PUBLIC_IP"])
-
+        strTables = ','.join(str(e) for e in _experiments[experiment_id]["flow_tables"])
+        logger.info("ODL PROXY - /SDNproxySetup return table :" + strTables  + " for Experiment id :" + experiment_id )
         return json.dumps(
             {"user-flow-tables": _experiments[experiment_id]["flow_tables"], "endpoint_url": url})
 
@@ -524,7 +525,7 @@ def delete_handler(token):
                         if value["experiment_id"] == token:
                             value["assigned"] = False
                             value["experiment_id"] = ""
-                            tablesExperiment = value["table"]
+                            tablesExperiment = copy.deepcopy(value["table"])
                             tablesExperiment.append(0)  # Add Table 0 for remove overide flow
                             break
 
@@ -568,7 +569,7 @@ def check_auth_header(headers):
     if "Auth-Secret" in headers.keys():
         auth_secret = headers.get("Auth-Secret")
         logger.debug("'Auth-Secret' header present! value: %s" % auth_secret)
-        if auth_secret == _auth_secret:
+        if auth_secret == os.environ['ODLPROXY_AUTH_SECRET']:
             return True
     return False
 

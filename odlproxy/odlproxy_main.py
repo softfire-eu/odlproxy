@@ -38,6 +38,9 @@ def parse_args_and_set_env():
 
     config = ConfigParser.ConfigParser()
     config.read(configfile_path)
+
+
+
     os.environ['OS_USERNAME'] =     config.get("OPENSTACK", "OS_USERNAME")
     os.environ['OS_USERNAME_ID'] =  config.get("OPENSTACK", "OS_USERNAME_ID")
     os.environ['OS_PASSWORD'] =     config.get("OPENSTACK", "OS_PASSWORD")
@@ -49,7 +52,9 @@ def parse_args_and_set_env():
     os.environ['ODL_PORT'] = config.get("ODL", "ODL_PORT")
     os.environ['ODL_USER'] = config.get("ODL", "ODL_USER")
     os.environ['ODL_PASS'] = config.get("ODL", "ODL_PASS")
+
     os.environ['ODLPROXY_PUBLIC_IP'] = config.get("ODLPROXY", "PUBLIC_IP")
+    os.environ['ODLPROXY_AUTH_SECRET'] = config.get("ODLPROXY", "AUTH_SECRET")
 
     os.environ['RABBIT_HOST'] = config.get("RABBIT", "RABBIT_HOST")
     os.environ['RABBIT_PORT'] = config.get("RABBIT", "RABBIT_PORT")
@@ -89,11 +94,7 @@ def odlproxy_main():
     #print('secondo' + str(future.done()))
     #print(future.result())
 
-
 if __name__ == '__main__':
-    print __name__
     odlproxy_main()
-else:
-    print __name__
 
 
