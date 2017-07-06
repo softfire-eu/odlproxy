@@ -26,7 +26,7 @@ def nova_callback(ch, method, properties, body):
         if oslo_message['oslo.message']:
             oslo_message = oslo_message['oslo.message']
 
-        logger.info(oslo_message)
+        logger.info("payload %s", oslo_message)
 
         event = oslo_message['event_type']
         tenant_id = oslo_message['_context_tenant']
