@@ -1,10 +1,8 @@
 import os
 from openstack import connection
 from openstack import profile
-
-
 from utils import get_logger
-from novaclient.client import Client
+#from novaclient.client import Client
 
 logger = get_logger(__name__)
 
@@ -46,34 +44,34 @@ def list_networks(conn):
     for network in conn.network.networks():
         print(network)
 
-def get_VM (server_id,tenant_id):
-    credentials = get_nova_credentials_v2(tenant_id)
-    nova_client = Client(**credentials)
-
-    server = nova_client.servers.get(server_id)
-    print_server(server)
-
-    print(nova_client.servers.list())
-
-    return server
-
-def get_nova_credentials_v2(tenant_id):
-    d = {}
-    d['version'] = '2.0'
-    d['username'] = os.environ['OS_USERNAME']
-    d['password'] = os.environ['OS_PASSWORD']
-    d['auth_url'] = os.environ['OS_AUTH_URL']
-    d['project_id'] = tenant_id
-
-    #d['project_id'] = 'demo'
-    return d
-
-def print_server(server):
-    print("-"*35)
-    print("server id: %s" % server.id)
-    print("server name: %s" % server.name)
-    print("server image: %s" % server.image)
-    print("server flavor: %s" % server.flavor)
-    print("server key name: %s" % server.key_name)
-    print("user_id: %s" % server.user_id)
-    print("-"*35)
+# def get_VM (server_id,tenant_id):
+#     credentials = get_nova_credentials_v2(tenant_id)
+#     nova_client = Client(**credentials)
+#
+#     server = nova_client.servers.get(server_id)
+#     print_server(server)
+#
+#     print(nova_client.servers.list())
+#
+#     return server
+#
+# def get_nova_credentials_v2(tenant_id):
+#     d = {}
+#     d['version'] = '2.0'
+#     d['username'] = os.environ['OS_USERNAME']
+#     d['password'] = os.environ['OS_PASSWORD']
+#     d['auth_url'] = os.environ['OS_AUTH_URL']
+#     d['project_id'] = tenant_id
+#
+#     #d['project_id'] = 'demo'
+#     return d
+#
+# def print_server(server):
+#     print("-"*35)
+#     print("server id: %s" % server.id)
+#     print("server name: %s" % server.name)
+#     print("server image: %s" % server.image)
+#     print("server flavor: %s" % server.flavor)
+#     print("server key name: %s" % server.key_name)
+#     print("user_id: %s" % server.user_id)
+#     print("-"*35)

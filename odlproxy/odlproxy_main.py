@@ -4,11 +4,12 @@ import sys
 import ConfigParser
 import odl_proxy_listner
 from concurrent.futures import ThreadPoolExecutor
-from utils import get_logger
+import utils
 
 __author__ = 'Massimiliano Romano'
 
-logger = get_logger(__name__)
+logger = utils.get_logger(__name__)
+_configfile_path="/etc/odlproxy/odlproxy.ini"
 
 def print_usage():
     print("python odlproxy_main.py --configfile /etc/odlproxy/odlproxy.ini")
@@ -19,9 +20,6 @@ def print_usage():
 def parse_args_and_set_env():
     args = sys.argv
     #args[0] is odlproxy_main.py
-
-    configfile_path="/etc/odlproxy/odlproxy.ini"
-
     if len(args) == 2:
         print_usage()
         return
@@ -34,12 +32,10 @@ def parse_args_and_set_env():
 
         configfile_path=args[2]
 
-    print("using configfile "+configfile_path)
+    logger.info("Using configfile : " + _configfile_path )
 
     config = ConfigParser.ConfigParser()
-    config.read(configfile_path)
-
-
+    config.read(_configfile_path)
 
     os.environ['OS_USERNAME'] =     config.get("OPENSTACK", "OS_USERNAME")
     os.environ['OS_USERNAME_ID'] =  config.get("OPENSTACK", "OS_USERNAME_ID")
@@ -78,14 +74,10 @@ def parse_args_and_set_env():
     os.environ['ODL_PASS'] = "admin"
     '''
 
-
-
-
 def odlproxy_main():
-    #logger.info("starting up")
+    logger.info("Starting ODL Proxy")
     parse_args_and_set_env()
     #    odl_proxy_api.start()
-
     pool = ThreadPoolExecutor(3)
     pool.submit(odl_proxy_api.start)
     pool.submit(odl_proxy_listner.listenerNotifications())

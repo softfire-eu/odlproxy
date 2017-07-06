@@ -20,7 +20,6 @@ The following dependencies must be installed with the following commands (make s
 pip install python-odlclient==0.0.1.dev13
 pip install bottle==0.12.13
 pip install openstacksdk==0.9.16
-pip install python-novaclient==9.0.1
 pip install pika==0.10.0
 pip install futures==3.1.1
 ```
@@ -33,10 +32,16 @@ cd /folder-where-to-install-odlproxy
 git clone https://github.com/softfire-eu/odlproxy.git
 ```
 
-### 3. Create log folder
+### 3. Create folders
+#### 3.1 log folder
 ```bash
 sudo mkdir /var/log/odlproxy
-sudo chmod 755 /var/log/odlproxy
+sudo setfacl -m u:<user>:rwx /var/log/odlproxy/
+```
+#### 3.2 Persistence folder
+```bash
+sudo mkdir /var/lib/odlproxy
+sudo setfacl -m u:<user>:rwx /var/lib/odlproxy/
 ```
 
 ### 4. Create config file
