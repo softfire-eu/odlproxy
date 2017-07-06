@@ -29,7 +29,10 @@ def nova_callback(ch, method, properties, body):
         logger.info("payload %s", oslo_message)
 
         event = oslo_message['event_type']
+        logger.info("event %s", event)
+
         tenant_id = oslo_message['_context_tenant']
+        logger.info("tenant_id %s", tenant_id)
 
         if event == "compute.instance.create.end":
             #create the flow
