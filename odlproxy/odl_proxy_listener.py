@@ -49,6 +49,7 @@ def nova_callback(ch, method, properties, body):
 
     except Exception as e:
         msg = "ODL Proxy " + str(e)
+        logger.info(msg)
         return msg
 
 def listenerNotifications():
