@@ -23,7 +23,7 @@ def nova_callback(ch, method, properties, body):
 
         oslo_message = json.loads(body)
 
-        if oslo_message['oslo.message']:
+        if 'oslo.message' in oslo_message:
             oslo_message = oslo_message['oslo.message']
 
         logger.info("payload %s", oslo_message)
@@ -36,8 +36,9 @@ def nova_callback(ch, method, properties, body):
 
         if event == "compute.instance.create.end":
             #create the flow
-            logger.info("event_type : " +event )
+            logger.info("event_type : " + event )
             server_id_create = oslo_message['payload']['instance_id']
+
             odl_proxy_api.createFlowFromVM(server_id_create,tenant_id)
             logger.info("server_id_create : " +  server_id_create)
         elif event == "compute.instance.delete.end":
