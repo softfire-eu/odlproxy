@@ -2,7 +2,7 @@ import os
 import odl_proxy_api
 import sys
 import ConfigParser
-import odl_proxy_listner
+import odl_proxy_listener
 from concurrent.futures import ThreadPoolExecutor
 import utils
 
@@ -80,7 +80,7 @@ def odlproxy_main():
     #    odl_proxy_api.start()
     pool = ThreadPoolExecutor(3)
     pool.submit(odl_proxy_api.start)
-    pool.submit(odl_proxy_listner.listenerNotifications())
+    pool.submit(odl_proxy_listener.listenerNotifications())
     #print( 'primo' + str(future.done()))
     #sleep(5)
     #print('secondo' + str(future.done()))

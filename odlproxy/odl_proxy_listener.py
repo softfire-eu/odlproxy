@@ -1,9 +1,6 @@
-import oslo_concurrency
 import pika
 import json
 import os
-import sys
-import ConfigParser
 import odl_proxy_api
 from utils import get_logger
 

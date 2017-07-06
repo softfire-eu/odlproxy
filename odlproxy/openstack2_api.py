@@ -1,4 +1,3 @@
-import os
 from openstack import connection
 from openstack import profile
 from utils import get_logger
