@@ -226,6 +226,7 @@ def createFlowFromVM(server_id,tenant_id):
         if checkTenatExist(tenant_id):
             for x in range(0,3):
                 createFlow = False
+                logger.info("ODL PROXY - create flow - sleep 3 seconds")
                 time.sleep(3)
 
 
@@ -301,14 +302,14 @@ def filterFlow(flows,type,node,tenant_id):
 
     if len(flowsOriginal) > 0:
 
-        logger.info("FilterFlow flowsCustom %s", flowsCustom)
-        logger.info("FilterFlow flowsOriginal %s", flowsOriginal)
+        logger.debug("FilterFlow flowsCustom %s", flowsCustom)
+        logger.debug("FilterFlow flowsOriginal %s", flowsOriginal)
         return {
             "flowsCustom": flowsCustom,
             "flowsOriginal": flowsOriginal
         }
     else:
-        logger.info("ODL PROXY - EMPTY FLOWS ORIGINAL for node:port")
+        logger.error("ODL PROXY - EMPTY FLOWS ORIGINAL for node:port")
         raise Exception('ODL PROXY - EMPTY FLOWS ORIGINAL for node:port')
 
 def findServerInPort(port):
