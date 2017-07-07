@@ -3,8 +3,6 @@ import functools
 import httplib
 import os
 import threading
-from uu import Error
-
 import bottle
 import re
 import logging
@@ -17,7 +15,7 @@ from bottle import post, get, delete, put
 from bottle import request, response
 import json
 import time
-from retrying import retry
+
 
 __author__ = 'Massimiliano Romano'
 
@@ -29,8 +27,8 @@ _authorization = "Basic YWRtaW46YWRtaW4="
 
 #ENABLE HTTP LOGGING
 httplib.HTTPConnection.debuglevel = 1
-logging.basicConfig()
-logging.getLogger().setLevel(logging.DEBUG)
+#logging.basicConfig()
+#logging.getLogger().setLevel(logging.DEBUG)
 req_log = logging.getLogger('requests.packages.urllib3')
 req_log.setLevel(logging.DEBUG)
 req_log.propagate = True
@@ -219,51 +217,60 @@ def deleteFlowFromVM(server_id,tenant_id):
         msg = "ODL Proxy - delele flow of VM" + str(e)
         logger.info(msg)
 
-@retry(NameError, tries=3)
+
+
 @synchronized
 def createFlowFromVM(server_id,tenant_id):
     logger.info("ODL PROXY - create flow of VM : " + str(server_id) + " of tenant id - " + str(tenant_id))
-    time.sleep(3)
-
     try:
         if checkTenatExist(tenant_id):
-            createFlow = False
-            headers = {
-                "Authorization": _authorization,
-                "Content-Type": "application/json"
-            }  # request.headers
+            for x in range(0,3):
+                createFlow = False
+                time.sleep(3)
 
-            # Edit the flow on table 0 to first table on range
-            nodes = odl.getAllNodes()
-            #ports = get_ports(tenant_id)
-            port = get_port(server_id, tenant_id)
 
-            # Get flow on table 0
-            urlODL = "http://" + os.environ['ODL_HOST'] + ":" + os.environ['ODL_PORT'] + "/restconf/config/opendaylight-inventory:nodes/node/{NODE_ID}/table/{TABLE_ID}"
-            tableExperiment = getTableExperiments(tenant_id)
+                headers = {
+                    "Authorization": _authorization,
+                    "Content-Type": "application/json"
+                }  # request.headers
 
-            for node in nodes:
-                logger.debug("ODL PROXY - create flow of VM - node :" + str(node.id))
-                flows = getFlowsTable(urlODL, node, 0, headers)
-                flowsFiltered = filterFlow(flows,type,node,tenant_id)
+                # Edit the flow on table 0 to first table on range
+                nodes = odl.getAllNodes()
+                #ports = get_ports(tenant_id)
+                port = get_port(server_id, tenant_id)
 
-                for flowOriginal in flowsFiltered["flowsOriginal"]:
-                    if port.id in flowOriginal["flow-name"]:
-                        if checkPortInFlows(flowsFiltered["flowsCustom"],port.id):
-                            logger.info("Flow already overwritten")
-                            #print "Flow already overwritten"
-                        else:
-                            #create the custom Flow
-                            createFlow=True
-                            overrideFlow(flowOriginal, tableExperiment, tenant_id, port, urlODL, headers, node.id,server_id)
+                # Get flow on table 0
+                urlODL = "http://" + os.environ['ODL_HOST'] + ":" + os.environ['ODL_PORT'] + "/restconf/config/opendaylight-inventory:nodes/node/{NODE_ID}/table/{TABLE_ID}"
+                tableExperiment = getTableExperiments(tenant_id)
 
-            if createFlow:
-                logger.info("RETRYING TO CREATE FLOW FOR VM : " + str(server_id))
-                raise NameError("RETRYING TO CREATE FLOW FOR VM : "  + str(server_id))
+                for node in nodes:
+                    logger.debug("ODL PROXY - create flow of VM - node :" + str(node.id))
+                    flows = getFlowsTable(urlODL, node, 0, headers)
+                    flowsFiltered = filterFlow(flows,type,node,tenant_id)
 
+                    for flowOriginal in flowsFiltered["flowsOriginal"]:
+                        if port.id in flowOriginal["flow-name"]:
+                            if checkPortInFlows(flowsFiltered["flowsCustom"],port.id):
+                                logger.info("Flow already overwritten")
+                                #print "Flow already overwritten"
+                            else:
+                                #create the custom Flow
+                                createFlow = True
+                                overrideFlow(flowOriginal, tableExperiment, tenant_id, port, urlODL, headers, node.id,server_id)
+
+                if not createFlow:
+                    if x==3:
+                        logger.error("STOP RETRYING TO CREATE FLOW FOR VM : " + str(server_id) + " NO FLOW CREATED")
+                        break
+                    logger.info( str(x+1) + " RETRYING TO CREATE FLOW FOR VM : " + str(server_id))
+                    if x==2:
+                        logger.error("STOP RETRYING TO CREATE FLOW FOR VM : " + str(server_id) + " NO FLOW CREATED")
+                else:
+                    break
     except Exception as e:
         msg = "ODL Proxy - create flow of VM" + str(e)
-        logger.info(msg)
+        logger.error(msg)
+
 
 def checkPortInFlows(flows,portId):
     founded = False
