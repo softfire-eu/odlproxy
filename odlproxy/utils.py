@@ -4,7 +4,7 @@ import json
 import os
 from collections import OrderedDict
 
-CONFIG_FILE_PATH = './odl-proxy-log.ini'
+CONFIG_FILE_PATH = '/etc/odlproxy/odl-proxy-log.ini'
 
 _logger = dict()
 

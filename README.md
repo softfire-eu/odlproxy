@@ -10,7 +10,6 @@ Also the content of the requests is filtered, so requests that involve tables or
 
 
 
-
 ## Installation
 
 ### 1. Requirements
@@ -23,8 +22,6 @@ pip install openstacksdk==0.9.16
 pip install pika==0.10.0
 pip install futures==3.1.1
 ```
-
-
 ### 2. Copy source code
 ```bash
 cd /FOLDER/WHERE/TO/INSTALL/ODLPROXY
@@ -75,6 +72,9 @@ RABBIT_PORT = 5672
 RABBIT_USER = admin
 RABBIT_PASS = adminpwd
 ```
+### 5. Logging
+Copy the file from /folder-where-to-install-odlproxy//odlproxy/odlproxy.ini to /etc/odlproxy/odlproxy.ini
+cp /folder-where-to-install-odlproxy//odlproxy/odlproxy.ini /etc/odlproxy/
 
 
 ## ODLProxy start
