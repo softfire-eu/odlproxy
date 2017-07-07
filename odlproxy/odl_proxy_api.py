@@ -14,6 +14,8 @@ from utils import get_logger
 from bottle import post, get, delete, put
 from bottle import request, response
 import json
+import time
+from retrying import retry
 
 __author__ = 'Massimiliano Romano'
 
@@ -169,7 +171,7 @@ def getTableExperiments(tenant_id):
         if value['tenant'] == tenant_id:
             return value['flow_tables']
 
-
+@synchronized
 def deleteFlowFromVM(server_id,tenant_id):
     logger.info("ODL PROXY - delele flow of VM : " + str(server_id) + " of tenant id - " + str(tenant_id))
     try:
@@ -215,10 +217,15 @@ def deleteFlowFromVM(server_id,tenant_id):
         msg = "ODL Proxy - delele flow of VM" + str(e)
         logger.info(msg)
 
+@synchronized
+@retry(NameError, tries=3)
 def createFlowFromVM(server_id,tenant_id):
     logger.info("ODL PROXY - create flow of VM : " + str(server_id) + " of tenant id - " + str(tenant_id))
+    time.sleep(3)
+
     try:
         if checkTenatExist(tenant_id):
+            createFlow = False
             headers = {
                 "Authorization": _authorization,
                 "Content-Type": "application/json"
@@ -245,7 +252,12 @@ def createFlowFromVM(server_id,tenant_id):
                             #print "Flow already overwritten"
                         else:
                             #create the custom Flow
+                            createFlow=True
                             overrideFlow(flowOriginal, tableExperiment, tenant_id, port, urlODL, headers, node.id,server_id)
+
+            if createFlow:
+                logger.info("RETRYING TO CREATE FLOW FOR VM : " + str(server_id))
+                raise NameError("NameError")
 
     except Exception as e:
         msg = "ODL Proxy - create flow of VM" + str(e)

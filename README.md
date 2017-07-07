@@ -22,6 +22,7 @@ pip install bottle==0.12.13
 pip install openstacksdk==0.9.16
 pip install pika==0.10.0
 pip install futures==3.1.1
+pip install retrying==1.3.3
 ```
 
 
