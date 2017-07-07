@@ -3,6 +3,8 @@ import functools
 import httplib
 import os
 import threading
+from uu import Error
+
 import bottle
 import re
 import logging
@@ -217,8 +219,8 @@ def deleteFlowFromVM(server_id,tenant_id):
         msg = "ODL Proxy - delele flow of VM" + str(e)
         logger.info(msg)
 
-@synchronized
 @retry(NameError, tries=3)
+@synchronized
 def createFlowFromVM(server_id,tenant_id):
     logger.info("ODL PROXY - create flow of VM : " + str(server_id) + " of tenant id - " + str(tenant_id))
     time.sleep(3)
@@ -257,7 +259,7 @@ def createFlowFromVM(server_id,tenant_id):
 
             if createFlow:
                 logger.info("RETRYING TO CREATE FLOW FOR VM : " + str(server_id))
-                raise NameError("NameError")
+                raise NameError("RETRYING TO CREATE FLOW FOR VM : "  + str(server_id))
 
     except Exception as e:
         msg = "ODL Proxy - create flow of VM" + str(e)
