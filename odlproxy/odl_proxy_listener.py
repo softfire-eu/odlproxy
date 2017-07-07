@@ -22,29 +22,34 @@ def nova_callback(ch, method, properties, body):
         logger.info("exchange=%s" % method.exchange)
 
         oslo_message = json.loads(body)
+        message = dict()
+        logger.info("Message arrived Payload %s", oslo_message)
+
+        #oslo_message =  {"_context_domain": "null", "_context_roles": ["_member_"], "_context_quota_class": "null", "event_type": "compute.instance.create.end", "_context_request_id": "req-3a3dc43f-01bc-420e-934f-506d539849ea", "_context_service_catalog": [{"endpoints": [{"adminURL": "http://172.16.21.103:8776/v2/bd40adcf1c5940ad8a4d8f471ac049f3", "region": "regionOne", "internalURL": "http://172.16.21.103:8776/v2/bd40adcf1c5940ad8a4d8f471ac049f3", "publicURL": "http://172.16.21.31:8776/v2/bd40adcf1c5940ad8a4d8f471ac049f3"}], "type": "volumev2", "name": "cinderv2"}, {"endpoints": [{"adminURL": "http://172.16.21.103:8776/v1/bd40adcf1c5940ad8a4d8f471ac049f3", "region": "regionOne", "internalURL": "http://172.16.21.103:8776/v1/bd40adcf1c5940ad8a4d8f471ac049f3", "publicURL": "http://172.16.21.31:8776/v1/bd40adcf1c5940ad8a4d8f471ac049f3"}], "type": "volume", "name": "cinder"}], "timestamp": "2017-07-06 16:26:25.439793", "_context_user": "002dc8c847524a3687f26d8f24bf2b04", "_unique_id": "4d6a29b22fe84e88817470fcd4de79a2", "_context_resource_uuid": "null", "_context_instance_lock_checked": "false", "_context_is_admin_project": "true", "_context_user_id": "002dc8c847524a3687f26d8f24bf2b04", "payload": {"state_description": "", "availability_zone": "nova", "terminated_at": "", "ephemeral_gb": 0, "instance_type_id": 1, "message": "Success", "deleted_at": "", "fixed_ips": [{"version": 4, "vif_mac": "fa:16:3e:d0:27:04", "floating_ips": [], "label": "net-test1", "meta": {}, "address": "10.10.10.12", "type": "fixed"}], "instance_id": "fbdd5885-3ba6-462c-9ffa-d9e704ce2729", "display_name": "test1", "reservation_id": "r-nuaimvi4", "hostname": "test1", "state": "active", "progress": "", "launched_at": "2017-07-06T16:26:25.168196", "metadata": {}, "node": "overcloud-compute-1.localdomain", "ramdisk_id": "", "access_ip_v6": "null", "disk_gb": 1, "access_ip_v4": "null", "kernel_id": "", "host": "overcloud-compute-1.localdomain", "user_id": "002dc8c847524a3687f26d8f24bf2b04", "image_ref_url": "http://172.16.21.171:9292/images/bb397756-0a31-410a-97de-b9f9a92d902c", "cell_name": "", "root_gb": 1, "tenant_id": "bd40adcf1c5940ad8a4d8f471ac049f3", "created_at": "2017-07-06 16:26:45+00:00", "memory_mb": 512, "instance_type": "m1.tiny", "vcpus": 1, "image_meta": {"min_disk": "1", "container_format": "bare", "min_ram": "0", "disk_format": "qcow2", "base_image_ref": "bb397756-0a31-410a-97de-b9f9a92d902c"}, "architecture": "null", "os_type": "null", "instance_flavor_id": "2d84fe56-4d6a-4a71-be7e-13a1d5f47000"}, "_context_project_name": "test1", "_context_read_deleted": "no", "_context_user_identity": "002dc8c847524a3687f26d8f24bf2b04 bd40adcf1c5940ad8a4d8f471ac049f3 - - -", "_context_auth_token": "0406d36cef8141fb81570fed473d7f2b", "_context_show_deleted": "false", "_context_tenant": "bd40adcf1c5940ad8a4d8f471ac049f3", "priority": "INFO", "_context_read_only": "false", "_context_is_admin": "false", "_context_project_id": "bd40adcf1c5940ad8a4d8f471ac049f3", "_context_project_domain": "null", "_context_timestamp": "2017-07-06T16:26:44.398146", "_context_user_domain": "null", "_context_user_name": "admin", "publisher_id": "compute.overcloud-compute-1.localdomain", "message_id": "59b08b7e-472d-4e72-bf4e-5d9e9863f8c6", "_context_remote_address": "172.16.21.108"}
+        #logger.info("payload %s", oslo_message)
 
         if 'oslo.message' in oslo_message:
-            oslo_message = oslo_message['oslo.message']
+            message = oslo_message['oslo.message']
+        else:
+            message = oslo_message
 
-        logger.info("payload %s", oslo_message)
+        logger.info("Message used Payload %s", message)
 
-        event = oslo_message['event_type']
+        event = message['event_type']
         logger.info("event %s", event)
 
-        tenant_id = oslo_message['_context_tenant']
+        tenant_id = message['_context_tenant']
         logger.info("tenant_id %s", tenant_id)
 
         if event == "compute.instance.create.end":
             #create the flow
-            logger.info("event_type : " + event )
-            server_id_create = oslo_message['payload']['instance_id']
-
+            server_id_create = message['payload']['instance_id']
             odl_proxy_api.createFlowFromVM(server_id_create,tenant_id)
             logger.info("server_id_create : " +  server_id_create)
+
         elif event == "compute.instance.delete.end":
             #delete the flow
-            logger.info("event_type : " + event)
-            server_id_delete = oslo_message['payload']['instance_id']
+            server_id_delete = message['payload']['instance_id']
             odl_proxy_api.deleteFlowFromVM(server_id_delete,tenant_id)
             logger.info("server_id_delete : " + server_id_delete)
 
