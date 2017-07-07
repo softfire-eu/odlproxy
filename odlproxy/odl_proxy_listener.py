@@ -16,10 +16,10 @@ def nova_callback(ch, method, properties, body):
     :param body: refers to the message transmitted
     """
     try:
-        logger.info("--------------------------------------------------------- ")
-        logger.info("called callback... ")
-        logger.info("routing key=%s" % method.routing_key)
-        logger.info("exchange=%s" % method.exchange)
+        logger.debug("--------------------------------------------------------- ")
+        logger.debug("called callback... ")
+        logger.debug("routing key=%s" % method.routing_key)
+        logger.debug("exchange=%s" % method.exchange)
 
         oslo_message = json.loads(body)
         message = dict()
@@ -33,13 +33,13 @@ def nova_callback(ch, method, properties, body):
         else:
             message = oslo_message
 
-        logger.info("Message used Payload %s", message)
+        logger.debug("Message used Payload %s", message)
 
         event = message['event_type']
-        logger.info("event %s", event)
+        logger.debug("event %s", event)
 
         tenant_id = message['_context_tenant']
-        logger.info("tenant_id %s", tenant_id)
+        logger.debug("tenant_id %s", tenant_id)
 
         if event == "compute.instance.create.end":
             #create the flow
@@ -55,7 +55,7 @@ def nova_callback(ch, method, properties, body):
 
     except Exception as e:
         msg = "ODL Proxy " + str(e)
-        logger.info(msg)
+        logger.error(msg)
         return msg
 
 def listenerNotifications():
