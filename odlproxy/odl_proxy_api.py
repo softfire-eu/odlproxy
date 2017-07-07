@@ -241,7 +241,8 @@ def createFlowFromVM(server_id,tenant_id):
                 for flowOriginal in flowsFiltered["flowsOriginal"]:
                     if port.id in flowOriginal["flow-name"]:
                         if checkPortInFlows(flowsFiltered["flowsCustom"],port.id):
-                            print "Flow already overwritten"
+                            logger.info("Flow already overwritten")
+                            #print "Flow already overwritten"
                         else:
                             #create the custom Flow
                             overrideFlow(flowOriginal, tableExperiment, tenant_id, port, urlODL, headers, node.id,server_id)
@@ -269,20 +270,24 @@ def filterFlow(flows,type,node,tenant_id):
         #If start with tenat is custom
         if flow["flow-name"].startswith(tenant_id):
             flowsCustom.append(flow);
-            print "custom"
+            logger.debug("FilterFlow flowsCustom %s", flow)
         # If contains node is odl
         nodeId = node.id
         id = nodeId.split(":")[1]
         if id in flow["flow-name"]:
             flowsOriginal.append(flow);
-            print "odl"
+            logger.debug("FilterFlow flowsOriginal %s", flow)
 
     if len(flowsOriginal) > 0:
+
+        logger.info("FilterFlow flowsCustom %s", flowsCustom)
+        logger.info("FilterFlow flowsOriginal %s", flowsOriginal)
         return {
             "flowsCustom": flowsCustom,
             "flowsOriginal": flowsOriginal
         }
     else:
+        logger.info("ODL PROXY - EMPTY FLOWS ORIGINAL for node:port")
         raise Exception('ODL PROXY - EMPTY FLOWS ORIGINAL for node:port')
 
 def findServerInPort(port):
