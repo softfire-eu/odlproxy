@@ -33,25 +33,28 @@ def nova_callback(ch, method, properties, body):
         else:
             message = oslo_message
 
-        logger.debug("Message used Payload %s", message)
-
         event = message['event_type']
         logger.debug("event %s", event)
 
         tenant_id = message['_context_tenant']
-        logger.debug("tenant_id %s", tenant_id)
 
         if event == "compute.instance.create.end":
             #create the flow
+            logger.info("Message used Payload %s", message)
+            logger.debug("tenant_id %s", tenant_id)
             server_id_create = message['payload']['instance_id']
-            odl_proxy_api.createFlowFromVM(server_id_create,tenant_id)
-            logger.info("server_id_create : " +  server_id_create)
+            server_name_create = message['payload']['display_name']
+            odl_proxy_api.createFlowFromVM(server_id_create,server_name_create,tenant_id)
+            logger.info("Create instance_id : " +  server_id_create + " instance_name : " +  server_name_create)
 
         elif event == "compute.instance.delete.end":
             #delete the flow
+            logger.info("Message used Payload %s", message)
+            logger.debug("tenant_id %s", tenant_id)
             server_id_delete = message['payload']['instance_id']
-            odl_proxy_api.deleteFlowFromVM(server_id_delete,tenant_id)
-            logger.info("server_id_delete : " + server_id_delete)
+            server_name_delete = message['payload']['display_name']
+            odl_proxy_api.deleteFlowFromVM(server_id_delete,server_name_delete,tenant_id)
+            logger.info("Delete instance_id : " + server_id_delete + " instance_name : " + server_name_delete)
 
     except Exception as e:
         msg = "ODL Proxy " + str(e)
