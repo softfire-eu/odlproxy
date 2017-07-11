@@ -21,7 +21,7 @@ __author__ = 'Massimiliano Romano'
 
 logger = get_logger(__name__)
 
-#_authorization = "Basic YWRtaW46YWRtaW4="
+_authorization = "Basic YWRtaW46YWRtaW4="
 #_auth_secret = os.environ['ODLPROXY_AUTH_SECRET']
 #_api_endpoint = "http://localhost:8001/"
 
@@ -179,7 +179,7 @@ def deleteFlowFromVM(server_id,server_name,tenant_id):
     try:
         if checkTenatExist(tenant_id):
             headers = {
-                "Authorization": utils.encodeAuthorization(os.environ['ODL_USER'], os.environ['ODL_PASS']),
+                "Authorization": _authorization,
                 "Content-Type": "application/json"
             }  # request.headers
 
@@ -234,7 +234,7 @@ def createFlowFromVM(server_id,server_name,tenant_id):
                 time.sleep(3)
 
                 headers = {
-                    "Authorization": utils.encodeAuthorization(os.environ['ODL_USER'], os.environ['ODL_PASS']),
+                    "Authorization": _authorization,
                     "Content-Type": "application/json"
                 }  # request.headers
 
@@ -377,7 +377,7 @@ def proxy_creation_handler():
         tableExperiment = get_user_flowtables(tenant_id, experiment_id)
 
         headers = {
-            "Authorization": utils.encodeAuthorization(os.environ['ODL_USER'], os.environ['ODL_PASS']),
+            "Authorization": _authorization,
             "Content-Type": "application/json"
         }  # request.headers
 
@@ -641,7 +641,7 @@ def delete_handler(token):
                                 break
 
                         headers = {'Accept': accept,
-                                   "Authorization": utils.encodeAuthorization(os.environ['ODL_USER'], os.environ['ODL_PASS'])
+                                   "Authorization": _authorization
                                    }
                         for node in nodes:
                             logger.debug("ODL PROXY - DELETE /SDNproxy node :" + str(node.id))
@@ -754,7 +754,7 @@ def deleteRestConf(url):
         jsonCheckUrl = check_url(url)
         urlODL = "http://" + os.environ['ODL_HOST'] + ":" + os.environ['ODL_PORT'] + "/restconf/" + url
         headers = {'Accept': accept,
-                   "Authorization": utils.encodeAuthorization(os.environ['ODL_USER'], os.environ['ODL_PASS']),
+                   "Authorization": _authorization,
                    "Content-Type": "application/json"
                    }  # request.headers
 
@@ -809,7 +809,7 @@ def getRestConf(url):
         jsonCheckUrl = check_url(url)
         urlODL = "http://" + os.environ['ODL_HOST'] + ":" + os.environ['ODL_PORT'] + "/restconf/" + url
         headers = {'Accept': accept,
-                   "Authorization": utils.encodeAuthorization(os.environ['ODL_USER'], os.environ['ODL_PASS']),
+                   "Authorization": _authorization,
                    "Content-Type": "application/json"
                    }  # request.headers
 
@@ -867,7 +867,7 @@ def putRestConf(url):
         jsonCheckUrl = check_url(url)
         urlODL = "http://" + os.environ['ODL_HOST'] + ":" + os.environ['ODL_PORT'] + "/restconf/" + url
         headers = {'Accept': accept,
-                   "Authorization": utils.encodeAuthorization(os.environ['ODL_USER'], os.environ['ODL_PASS']),
+                   "Authorization": _authorization,
                    "Content-Type": "application/json"
                    }  # request.headers
         # EXEC

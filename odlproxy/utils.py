@@ -3,7 +3,6 @@ import logging.config
 import json
 import os
 from collections import OrderedDict
-from base64 import b64encode
 
 CONFIG_FILE_PATH = '/etc/odlproxy/odl-proxy-log.ini'
 
@@ -53,12 +52,6 @@ def logFlow(methoHttp, id, portId, portIp,instanceId,instanceName, node,nodePort
         logger.info(" | odl - go to table " + str(goToTable))
 
     logger.info("----------------------------------------------")
-
-
-def encodeAuthorization(username, password):
-
-    return 'Basic ' + b64encode("{0}:{1}".format(username, password))
-
 
 def readMapExperiments(file_path):
     if os.path.isfile(file_path):
