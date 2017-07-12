@@ -85,6 +85,15 @@ def listenerNotifications():
     server.wait()
     '''
 
+    logger.debug("----------------------------------------------------")
+    logger.debug(" |         Connection to RABBIT OPENSTAK          | ")
+    logger.debug("----------------------------------------------------")
+    logger.debug(" | ODL PROXY - HOST     :" + str(os.environ['RABBIT_HOST']))
+    logger.debug(" | ODL PROXY - PORT     :" + str(os.environ['RABBIT_PORT']))
+    logger.debug(" | ODL PROXY - USER     :" + str(os.environ['RABBIT_USER']))
+    logger.debug(" | ODL PROXY - PASSWORD :" + str(os.environ['RABBIT_PASS']))
+    logger.debug("----------------------------------------------------")
+
     connection = pika.BlockingConnection(pika.ConnectionParameters(host=os.environ['RABBIT_HOST'],
                                                                    port=int(os.environ['RABBIT_PORT']),
                                                                    credentials=pika.PlainCredentials(username=os.environ['RABBIT_USER'],
