@@ -446,8 +446,8 @@ def overrideFlow(flow,tableExperiment,tenant_id,port,urlODL,headers,nodeId,insta
     logger.debug("ODL PROXY - overrideFlow : flow :" + str(flow['flow-name']) + " - tenant_id : " + str(tenant_id) + " - port : " + str(port.id) +  " - nodeId : " + str(nodeId) + " - instanceId : " + str(instanceId) )
 
     #Edit Flow
-    flow1Put = flow
-    flow2Put = flow
+    flow1Put = copy.deepcopy(flow)
+    flow2Put = copy.deepcopy(flow)
 
     portOvs = getPortOVS(flow)
     portIp = getIpfromPort(port)
@@ -669,11 +669,11 @@ def delete_handler(token):
                                 urlODL = "http://" + os.environ['ODL_HOST'] + ":" + os.environ['ODL_PORT'] + "/restconf/config/opendaylight-inventory:nodes/node/{NODE_ID}/table/{TABLE_ID}"
                                 urlODL = urlODL.format(NODE_ID=node.id, TABLE_ID=table)
                                 if table == 0:
-                                    resp = requests.get(urlODL, headers=headers)
-                                    dataj= resp.json()
+                                    respGet = requests.get(urlODL, headers=headers)
+                                    dataj= respGet.json()
                                 else:
-                                    resp = requests.delete(urlODL, headers=headers)
-                                    logger.info("ODL PROXY /SDNproxy - " + str(resp.status_code) + " DELETE TABLE " + str(table))
+                                    respDelete = requests.delete(urlODL, headers=headers)
+                                    logger.info("ODL PROXY /SDNproxy - " + str(respDelete.status_code) + " DELETE TABLE " + str(table) + " in NODE : " + str(node.id))
 
                             if 'flow-node-inventory:table' in dataj:
                                 tables = dataj['flow-node-inventory:table']
