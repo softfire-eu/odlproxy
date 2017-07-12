@@ -92,6 +92,15 @@ def get_port(server_id,tenant_id):
     password = os.environ['OS_PASSWORD']
     project_id = tenant_id
 
+    logger.debug("----------------------------------------------------")
+    logger.debug(" |             Connection to OPENSTAK             | ")
+    logger.debug("----------------------------------------------------")
+    logger.debug(" | ODL PROXY - auth_url  :" + str(auth_url))
+    logger.debug(" | ODL PROXY - user      :" + str(user))
+    logger.debug(" | ODL PROXY - password  :" + str(password))
+    logger.debug(" | ODL PROXY - tenant_id :" + str(project_id))
+    logger.debug("----------------------------------------------------")
+
     conn = openstack2_api.create_connection(auth_url, None, project_id, user, password)
 
     # Trasform object Generetor to List
@@ -110,6 +119,15 @@ def get_ports(tenant_id):
     user = os.environ['OS_USERNAME']
     password = os.environ['OS_PASSWORD']
     project_id = tenant_id
+
+    logger.debug("----------------------------------------------------")
+    logger.debug(" |             Connection to OPENSTAK             | ")
+    logger.debug("----------------------------------------------------")
+    logger.debug(" | ODL PROXY - auth_url  :" + str(auth_url))
+    logger.debug(" | ODL PROXY - user      :" + str(user))
+    logger.debug(" | ODL PROXY - password  :" + str(password))
+    logger.debug(" | ODL PROXY - tenant_id :" + str(project_id))
+    logger.debug("----------------------------------------------------")
 
     conn = openstack2_api.create_connection(auth_url, None, project_id, user, password)
 
