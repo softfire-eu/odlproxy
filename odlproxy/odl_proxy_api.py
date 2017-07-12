@@ -409,7 +409,8 @@ def proxy_creation_handler():
                             logger.debug("ODL PROXY - POST /SDNproxySetup port :" + str(port.id))
                             if port.id in flow['id']:
                                 serverId = findServerInPort(port)
-                                overrideFlow(flow, tableExperiment, tenant_id, port, urlODL, headers,node.id,serverId,None)
+                                if serverId is not None:
+                                    overrideFlow(flow, tableExperiment, tenant_id, port, urlODL, headers,node.id,serverId,None)
 
             except Exception as e:
                 response.status = 400
