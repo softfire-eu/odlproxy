@@ -25,7 +25,7 @@ class NovaConsumer(object):
     """
     EXCHANGE = 'nova'
     EXCHANGE_TYPE = 'topic'
-    QUEUE = 'odlProxuQueue'
+    QUEUE = 'odlProxyQueue'
     ROUTING_KEY = 'notifications.#'
 
     def __init__(self, amqp_url):
@@ -305,6 +305,10 @@ class NovaConsumer(object):
 
             if event == "compute.instance.create.end":
                 # create the flow
+
+                #wait for floating ip associeted
+                time.sleep(10)
+
                 LOGGER.info('Received message # %s from %s: %s',basic_deliver.delivery_tag, properties.app_id, message)
                 LOGGER.debug("tenant_id %s", tenant_id)
                 server_id_create = message['payload']['instance_id']
