@@ -645,7 +645,7 @@ def delete_handler(token):
 
                         #Clear the table assigned to experimenter
 
-                        nodes = odl.getAllNodes()
+
                         for key, value in _mapTable.iteritems():
                             if value["experiment_id"] == token:
                                 value["assigned"] = False
@@ -662,6 +662,8 @@ def delete_handler(token):
                         headers = {'Accept': accept,
                                    "Authorization": utils.encodeAuthorization(os.environ['ODL_USER'], os.environ['ODL_PASS'])
                                    }
+
+                        nodes = odl.getAllNodes()
                         for node in nodes:
                             logger.debug("ODL PROXY - DELETE /SDNproxy node :" + str(node.id))
                             id = node.id
@@ -674,7 +676,6 @@ def delete_handler(token):
                                 else:
                                     respDelete = requests.delete(urlODL, headers=headers)
                                     logger.info("ODL PROXY /SDNproxy - " + str(respDelete.status_code) + " DELETE TABLE " + str(table) + " in NODE : " + str(node.id))
-
                             if 'flow-node-inventory:table' in dataj:
                                 tables = dataj['flow-node-inventory:table']
                                 for table in tables:

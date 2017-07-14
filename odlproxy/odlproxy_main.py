@@ -2,9 +2,9 @@ import os
 import odl_proxy_api
 import sys
 import ConfigParser
-import odl_proxy_listener
 from concurrent.futures import ThreadPoolExecutor
 import utils
+from odl_proxy_consumer import NovaConsumer
 
 __author__ = 'Massimiliano Romano'
 
@@ -74,13 +74,22 @@ def parse_args_and_set_env():
     os.environ['ODL_PASS'] = "admin"
     '''
 
+def pikaconnect():
+    consumer = NovaConsumer('amqp://'+ os.environ['RABBIT_USER']+ ':' +os.environ['RABBIT_PASS'] + '@' +os.environ['RABBIT_HOST'] + ':' + os.environ['RABBIT_PORT'] + '/%2F')
+    try:
+        consumer.run()
+    except KeyboardInterrupt:
+        consumer.stop()
+
 def odlproxy_main():
     logger.info("Starting ODL Proxy")
     parse_args_and_set_env()
     #    odl_proxy_api.start()
     pool = ThreadPoolExecutor(3)
     pool.submit(odl_proxy_api.start)
-    pool.submit(odl_proxy_listener.listenerNotifications())
+    #pool.submit(odl_proxy_listener.listenerNotifications())
+    pool.submit(pikaconnect())
+
     #print( 'primo' + str(future.done()))
     #sleep(5)
     #print('secondo' + str(future.done()))
