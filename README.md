@@ -10,7 +10,6 @@ Also the content of the requests is filtered, so requests that involve tables or
 
 
 
-
 ## Installation
 
 ### 1. Requirements
@@ -20,12 +19,9 @@ The following dependencies must be installed with the following commands (make s
 pip install python-odlclient==0.0.1.dev13
 pip install bottle==0.12.13
 pip install openstacksdk==0.9.16
-pip install python-novaclient==9.0.1
 pip install pika==0.10.0
 pip install futures==3.1.1
 ```
-
-
 ### 2. Copy source code
 ```bash
 cd /FOLDER/WHERE/TO/INSTALL/ODLPROXY
@@ -33,10 +29,16 @@ cd /folder-where-to-install-odlproxy
 git clone https://github.com/softfire-eu/odlproxy.git
 ```
 
-### 3. Create log folder
+### 3. Create folders
+#### 3.1 log folder
 ```bash
 sudo mkdir /var/log/odlproxy
-sudo chmod 755 /var/log/odlproxy
+sudo setfacl -m u:<user>:rwx /var/log/odlproxy/
+```
+#### 3.2 Persistence folder
+```bash
+sudo mkdir /var/lib/odlproxy
+sudo setfacl -m u:<user>:rwx /var/lib/odlproxy/
 ```
 
 ### 4. Create config file
@@ -70,6 +72,9 @@ RABBIT_PORT = 5672
 RABBIT_USER = admin
 RABBIT_PASS = adminpwd
 ```
+### 5. Logging
+Copy the file from /folder-where-to-install-odlproxy//odlproxy/odlproxy.ini to /etc/odlproxy/odlproxy.ini
+cp /folder-where-to-install-odlproxy//odlproxy/odlproxy.ini /etc/odlproxy/
 
 
 ## ODLProxy start
