@@ -639,7 +639,7 @@ def delete_handler(token):
                         response.status = 404
                         msg = "Experiment not found!"
                         logger.error(msg)
-                        return msg
+                        return json.dumps({"msg": msg})
 
                     else:
 
@@ -692,15 +692,16 @@ def delete_handler(token):
                                                         resp = requests.delete(urlODL, headers=headers)
                                                         utils.logFlow(str(resp.status_code) + " DELETE",idFlow, None, None, None,None, node.id, None, 0,None)
 
-                    response.status = 200
-                    msg = "ODL PROXY - DELETE /SDNproxy Experiment : " + token + " successfully deleted!"
-                    logger.info(msg)
-                    response.headers['Content-Type'] = 'application/json'
-                    return json.dumps({"msg": msg})
+                        response.status = 200
+                        msg = "ODL PROXY - DELETE /SDNproxy Experiment : " + token + " successfully deleted!"
+                        logger.info(msg)
+                        response.headers['Content-Type'] = 'application/json'
+                        return json.dumps({"msg": msg})
 
-                else:
-                    logger.error("403 - Auth-Secret error!")
-                    raise bottle.HTTPError(403, "Auth-Secret error!")
+        #AuthSecret Error
+        else:
+            logger.error("403 - Auth-Secret error!")
+            raise bottle.HTTPError(403, "Auth-Secret error!")
 
     except Exception as e:
         logger.exception("ODL PROXY - DELETE /SDNproxy : " + str(e) )
