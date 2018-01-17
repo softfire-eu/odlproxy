@@ -17,6 +17,7 @@ def print_usage():
     print("python odlproxy_main.py")
     print("     application search for /etc/odlproxy/odlproxy.ini as default")
 
+#Initilize
 def parse_args_and_set_env():
     args = sys.argv
     #args[0] is odlproxy_main.py
