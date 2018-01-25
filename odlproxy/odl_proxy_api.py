@@ -192,6 +192,13 @@ def getTableExperiments(tenant_id):
         if value['tenant'] == tenant_id:
             return value['flow_tables']
 
+#Get experimentID  by tenant
+def getExperimentId(tenant_id):
+    logger.debug("ODL PROXY - getExperimentId for tenant :" + str(tenant_id))
+    for key, value in _experiments.iteritems():
+        if value['tenant'] == tenant_id:
+            return key
+
 #Delete the flow of VM
 @synchronized
 def deleteFlowFromVM(server_id,server_name,tenant_id):
@@ -375,20 +382,32 @@ def proxy_creation_handler():
 
         experiment_id = data['experiment_id']
         tenant_id = data["tenant_id"]
+        url = "http://{HOSTNAME}:8001/".format(HOSTNAME=os.environ["ODLPROXY_PUBLIC_IP"])
 
-        # check for existence
+        # request.headers
+        headers = {
+            "Authorization": utils.encodeAuthorization(os.environ['ODL_USER'], os.environ['ODL_PASS']),
+            "Content-Type": "application/json",
+            "Cache-Control" : "no-cache"
+        }
+
+        # check for experimentId existence
         if experiment_id in _experiments:
             response.status = 500
             msg ="ODL Proxy - Duplicate experiment!"
             logger.error(msg)
             return msg
 
-        elif len(_experiments) > 0 : #Check if the tenant already associated
+        # Check if the tenant already associated
+        elif len(_experiments) > 0 :
             if checkTenatExist(tenant_id):
-                response.status = 500
-                msg = "ODL Proxy - Tenant: " + tenant_id + " already associated!"
-                logger.error(msg)
-                return msg
+                experimentIdAssociate = getExperimentId(tenant_id)
+                logger.info("ODL Proxy - Tenant: " + tenant_id + " already associated with experiment_id : + ")
+                strTables = ','.join(str(e) for e in _experiments[experimentIdAssociate]["flow_tables"])
+                logger.info("ODL PROXY - /SDNproxySetup return table :" + strTables + " for Experiment id :" + str(experimentIdAssociate))
+                logger.debug("ODL PROXY - /SDNproxySetup %s", _experiments)
+            return json.dumps(
+                {"user-flow-tables": _experiments[experimentIdAssociate]["flow_tables"], "endpoint_url": url})
 
         #Edit the flow on table 0 to first table on range
         nodes = odl.getAllNodes()
@@ -398,11 +417,6 @@ def proxy_creation_handler():
         urlODL = "http://" + os.environ['ODL_HOST'] + ":" + os.environ['ODL_PORT'] + "/restconf/config/opendaylight-inventory:nodes/node/{NODE_ID}/table/{TABLE_ID}"
         # Assign the first three table free to experiment
         tableExperiment = get_user_flowtables(tenant_id, experiment_id)
-
-        headers = {
-            "Authorization": utils.encodeAuthorization(os.environ['ODL_USER'], os.environ['ODL_PASS']),
-            "Content-Type": "application/json"
-        }  # request.headers
 
         for node in nodes:
             logger.debug("ODL PROXY - POST /SDNproxySetup node : " + str(node.id))
@@ -427,10 +441,6 @@ def proxy_creation_handler():
         utils.writeMapExperiments(_mapTable, CONFIG_FILE_MAP_EXPERIMENTS)
         _experiments[experiment_id] = {"tenant": tenant_id, "flow_tables": tableExperiment}
 
-        response.headers['Content-Type'] = 'application/json'
-        response.headers['Cache-Control'] = 'no-cache'
-
-        url = "http://{HOSTNAME}:8001/".format(HOSTNAME=os.environ["ODLPROXY_PUBLIC_IP"])
         strTables = ','.join(str(e) for e in _experiments[experiment_id]["flow_tables"])
         logger.info("ODL PROXY - /SDNproxySetup return table :" + strTables  + " for Experiment id :" + str(experiment_id) )
         logger.debug("ODL PROXY - /SDNproxySetup %s", _experiments)
