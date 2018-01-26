@@ -406,8 +406,7 @@ def proxy_creation_handler():
                 strTables = ','.join(str(e) for e in _experiments[experimentIdAssociate]["flow_tables"])
                 logger.info("ODL PROXY - /SDNproxySetup return table :" + strTables + " for Experiment id :" + str(experimentIdAssociate))
                 logger.debug("ODL PROXY - /SDNproxySetup %s", _experiments)
-            return json.dumps(
-                {"user-flow-tables": _experiments[experimentIdAssociate]["flow_tables"], "endpoint_url": url})
+                return json.dumps({"user-flow-tables": _experiments[experimentIdAssociate]["flow_tables"], "endpoint_url": url})
 
         #Edit the flow on table 0 to first table on range
         nodes = odl.getAllNodes()
