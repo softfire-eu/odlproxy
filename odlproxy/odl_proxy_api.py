@@ -934,7 +934,7 @@ def putRestConf(url):
                                                 goToTable = instruction['go-to-table']
                                                 tableDestination = goToTable['table_id']
                                                 if tableDestination in tables or tableDestination == 17:
-                                                    logger.debug("ODL PROXY - PUT - /restconf/" + url  + " go-to-table in range of experiment")
+                                                    logger.info("ODL PROXY - PUT - /restconf/" + url  + " go-to-table in range of experiment")
                                                 else:
                                                     response.status = 403
                                                     strTables = ','.join(str(e) for e in tables)
@@ -951,8 +951,8 @@ def putRestConf(url):
                                                         if 'output-action' in action:
                                                             outputAction = action['output-action']
                                                             if 'output-node-connector' in outputAction:
-                                                                if outputAction['output-node-connector'].lower() == "table" or outputAction['output-node-connector'].lower() == "inport" or outputAction['output-node-connector'].lower() == "in-port" :
-                                                                    logger.debug("ODL PROXY - PUT - /restconf/" + url + " output-node-connector " + outputAction['output-node-connector'] + " is allowed")
+                                                                if outputAction['output-node-connector'].lower() == "table" or outputAction['output-node-connector'].lower() == "inport" or outputAction['output-node-connector'].lower() == "in-port" or outputAction['output-node-connector'].lower() == "in_port" or utils.isInteger(outputAction['output-node-connector']):
+                                                                    logger.info("ODL PROXY - PUT - /restconf/" + url + " output-node-connector " + outputAction['output-node-connector'] + " is allowed")
                                                                 else:
                                                                     response.status = 403
                                                                     msg = "ODL Proxy - PUT -Forbidden can not use tag output-node-connector with value : " + outputAction['output-node-connector']

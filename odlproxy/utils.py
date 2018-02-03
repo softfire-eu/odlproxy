@@ -73,4 +73,11 @@ def readMapExperiments(file_path):
 def writeMapExperiments(map,file_path):
 
     with open(file_path, 'w') as outfile:
-        json.dump(map, outfile)
+        json.dump(map, outfile, indent=2)
+
+def isInteger(string_value):
+    try:
+        v = int(string_value)
+        return True
+    except ValueError:
+        return False
