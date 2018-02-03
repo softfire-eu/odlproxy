@@ -182,8 +182,10 @@ def checkTenatExist(tenant_id):
     for key, value in _experiments.iteritems():
         if value['tenant'] == tenant_id:
             return True
-        else:
-            return False
+
+    #tenant not found in _experiments
+    return False
+
 
 #Get the table assigned by tenant
 def getTableExperiments(tenant_id):
